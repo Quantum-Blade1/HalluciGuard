@@ -36,12 +36,13 @@ _PROJECT_ROOT = _SCANNER_DIR.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from scanner.config import SKIP_DIRS, SUPPORTED_EXTENSIONS, DEFAULT_RISK_THRESHOLD
+from scanner.config import SKIP_DIRS, SUPPORTED_EXTENSIONS, DEFAULT_RISK_THRESHOLD, AUDIT_LOG_PATH
 from scanner.data.bloom_filter import package_bloom_filter
 from scanner.data.hallucination_db import HallucinationDB
 from scanner.agents.sentinel import SentinelAgent, PackageRef
 from scanner.agents.validator import ValidatorAgent, ValidationResult
 from scanner.agents.profiler import ProfilerAgent, ProfileResult
+from scanner.agents.auditor import AuditorAgent
 
 # ── Logging: everything to stderr ───────────────────────────────────────────
 logging.basicConfig(
@@ -103,6 +104,14 @@ def emit_summary(
     })
 
 
+def emit_audit_summary(entries: int, chain_valid: bool) -> None:
+    emit({
+        "type": "audit_summary",
+        "entries_logged": entries,
+        "chain_valid": chain_valid,
+    })
+
+
 # ── File discovery ──────────────────────────────────────────────────────────
 
 def discover_files(workspace: Path, file_filter: list[str] | None = None) -> list[Path]:
@@ -139,6 +148,7 @@ async def scan_file(
     sentinel: SentinelAgent,
     validator: ValidatorAgent,
     profiler: ProfilerAgent,
+    auditor: AuditorAgent,
 ) -> tuple[int, int, int]:
     """Scan a single file through the 3-agent pipeline.
 
@@ -188,6 +198,10 @@ async def scan_file(
     passed_count = 0
 
     for ref, profile in zip(refs, profiles):
+        action = "BLOCK" if profile.risk_score >= 80 else ("WARN" if profile.is_high_risk else "ALLOW")
+        # Agent 4: Auditor — log every decision with hash chain
+        auditor.log_event(profile, action, language=language)
+
         if profile.is_high_risk:
             emit_finding(relative, ref, profile)
             high_risk_count += 1
@@ -206,6 +220,7 @@ async def run_scan(workspace: Path, file_filter: list[str] | None, threshold: in
     sentinel = SentinelAgent()
     validator = ValidatorAgent()
     profiler = ProfilerAgent(risk_threshold=threshold)
+    auditor = AuditorAgent(log_path=AUDIT_LOG_PATH)
 
     files = discover_files(workspace, file_filter)
     if not files:
@@ -219,7 +234,9 @@ async def run_scan(workspace: Path, file_filter: list[str] | None, threshold: in
 
     try:
         for file_path in files:
-            pkg, hr, ps = await scan_file(file_path, workspace, sentinel, validator, profiler)
+            pkg, hr, ps = await scan_file(
+                file_path, workspace, sentinel, validator, profiler, auditor
+            )
             total_packages += pkg
             total_high_risk += hr
             total_passed += ps
@@ -229,6 +246,7 @@ async def run_scan(workspace: Path, file_filter: list[str] | None, threshold: in
 
     elapsed_ms = (time.monotonic() - start) * 1000
     emit_summary(len(files), total_packages, total_high_risk, total_passed, elapsed_ms)
+    emit_audit_summary(auditor.entry_count(), auditor.verify_integrity())
 
 
 # ── CLI argument parsing ────────────────────────────────────────────────────

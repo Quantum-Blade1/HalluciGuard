@@ -19,6 +19,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 BLOOM_DIR = DATA_DIR / "bloom"
 HALLUCINATION_DB_DIR = DATA_DIR / "hallucination_db"
 CVE_CACHE_DIR = DATA_DIR / "cve_cache"
+AUDIT_LOG_PATH = DATA_DIR / "audit_log.jsonl"
 
 # ---------------------------------------------------------------------------
 # Directories to skip when walking a workspace
