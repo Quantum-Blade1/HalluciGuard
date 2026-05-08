@@ -122,7 +122,7 @@ The detection pipeline is a four-agent sequential system (v1):
 | **Validator** | Checks package existence via bloom filter, PyPI/npm APIs, and hallucination DB | ✅ Working |
 | **Profiler** | Computes a 0–100 risk score using 6 weighted supply-chain signals | ✅ Working |
 | **Remediator** | Suggests curated safe replacements, applies one-click Quick Fix in editor | ✅ Working |
-| **Auditor** | SHA-256 hash-chained audit log *(available in standalone dashboard mode)* | ✅ Working |
+| **Auditor** | SHA-256 hash-chained JSONL audit log — every scan decision logged with `chain_valid` verification | ✅ Working |
 
 ### 3. Intelligence and Data Layer
 
@@ -329,7 +329,7 @@ tests/                   # pytest test suite
 | Validator agent — bloom filter + registry | ✅ Fully working |
 | Profiler agent — risk scoring | ✅ Fully working |
 | Remediator — Quick Fix code actions | ✅ Fully working |
-| Auditor — hash-chained audit log | ✅ Working (standalone/dashboard mode) |
+| Auditor — SHA-256 hash-chained audit log | ✅ Fully working — wired into scanner pipeline, `chain_valid: true` verified |
 | Inline squiggly diagnostics | ✅ Fully working |
 | Sidebar TreeView results | ✅ Fully working |
 | Rich WebView panel with risk gauge | ✅ Fully working |
@@ -370,11 +370,31 @@ Risk weights are derived from:
 
 Built at the **Google India Hackathon 2025** to explore a growing software supply-chain problem: AI systems can invent dependencies, and those invented names can become real attack surfaces. The goal is to make that risk visible, actionable, and easy to catch during development.
 
-| Name | GitHub |
-| --- | --- |
-| Aanya Singh | [@aanya0-07](https://github.com/aanya0-07) |
-| Shashank Yamme | [@shashankyamme-code](https://github.com/shashankyamme-code) |
-| Krish Kumar Sharma | [@Quantum-Blade1](https://github.com/Quantum-Blade1) |
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/aanya0-07">
+        <img src="https://github.com/aanya0-07.png" width="100" height="100" style="border-radius:50%" alt="Aanya Singh"/><br/>
+        <b>Aanya Singh</b>
+      </a><br/>
+      <a href="https://github.com/aanya0-07">@aanya0-07</a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/shashankyamme-code">
+        <img src="https://github.com/shashankyamme-code.png" width="100" height="100" style="border-radius:50%" alt="Shashank Yamme"/><br/>
+        <b>Shashank Yamme</b>
+      </a><br/>
+      <a href="https://github.com/shashankyamme-code">@shashankyamme-code</a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/Quantum-Blade1">
+        <img src="https://github.com/Quantum-Blade1.png" width="100" height="100" style="border-radius:50%" alt="Krish Kumar Sharma"/><br/>
+        <b>Krish Kumar Sharma</b>
+      </a><br/>
+      <a href="https://github.com/Quantum-Blade1">@Quantum-Blade1</a>
+    </td>
+  </tr>
+</table>
 
 ---
 
