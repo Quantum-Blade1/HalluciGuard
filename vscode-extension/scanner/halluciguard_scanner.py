@@ -81,6 +81,7 @@ def emit_finding(
         "flags": profile.flags,
         "nearest": profile.nearest_package,
         "distance": profile.levenshtein_distance,
+        "suggested": profile.suggested,
         "language": ref.language,
     })
 

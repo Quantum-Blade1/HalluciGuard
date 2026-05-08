@@ -30,6 +30,7 @@ export interface ScanFinding {
     flags: string[];
     nearest: string;
     distance: number;
+    suggested: string;  // curated safe replacement from REMEDIATION_MAP
     language: 'python' | 'javascript';
 }
 
@@ -89,6 +90,7 @@ interface RawFinding {
     flags: string[];
     nearest: string;
     distance: number;
+    suggested: string;
     language: string;
 }
 
@@ -518,6 +520,7 @@ export class ScannerBridge extends EventEmitter {
                     flags: f.flags,
                     nearest: f.nearest,
                     distance: f.distance,
+                    suggested: f.suggested ?? '',
                     language: f.language as ScanFinding['language'],
                 };
                 findings.push(finding);

@@ -262,8 +262,10 @@ export class HalluciGuardCodeActionProvider implements vscode.CodeActionProvider
                 continue;
             }
 
-            // Only offer replacement fix if distance is small enough to be a typosquat
-            if (finding.nearest && finding.distance > 0 && finding.distance <= MAX_FIX_DISTANCE) {
+            // Offer replacement fix if we have a curated suggestion OR a close typosquat
+            const hasSuggestion = finding.suggested && finding.suggested.length > 0;
+            const isCloseTypo = finding.nearest && finding.distance > 0 && finding.distance <= MAX_FIX_DISTANCE;
+            if (hasSuggestion || isCloseTypo) {
                 const replaceAction = this.createReplaceAction(document, diagnostic, finding);
                 if (replaceAction) {
                     actions.push(replaceAction);
@@ -320,13 +322,18 @@ export class HalluciGuardCodeActionProvider implements vscode.CodeActionProvider
         oldText: string,
         finding: ScanFinding,
     ): vscode.CodeAction {
+        // Prefer curated suggestion over Levenshtein nearest
+        const fixTarget = (finding.suggested && finding.suggested.length > 0)
+            ? finding.suggested
+            : finding.nearest;
+
         const action = new vscode.CodeAction(
-            `Replace '${finding.package}' with '${finding.nearest}'`,
+            `Replace '${finding.package}' with '${fixTarget}'`,
             vscode.CodeActionKind.QuickFix,
         );
 
         // Determine the replacement text, preserving underscore/hyphen convention
-        let replacement = finding.nearest;
+        let replacement = fixTarget;
         if (oldText.includes('_') && !replacement.includes('_')) {
             replacement = replacement.replace(/-/g, '_');
         }

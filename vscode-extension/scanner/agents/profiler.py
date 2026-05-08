@@ -10,7 +10,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from scanner.config import DEFAULT_RISK_THRESHOLD, RISK_WEIGHTS
+from scanner.config import DEFAULT_RISK_THRESHOLD, RISK_WEIGHTS, REMEDIATION_MAP
 from scanner.agents.sentinel import PackageRef
 from scanner.agents.validator import ValidationResult
 from scanner.data.bloom_filter import package_bloom_filter
@@ -29,6 +29,7 @@ class ProfileResult:
     nearest_package: str = ""
     levenshtein_distance: int = 999
     is_high_risk: bool = False
+    suggested: str = ""  # curated safe replacement from REMEDIATION_MAP
 
 
 class ProfilerAgent:
@@ -133,6 +134,11 @@ class ProfilerAgent:
 
             total_risk = min(score, 100.0)
 
+            # Curated replacement: remediation map takes priority over Levenshtein nearest
+            suggested = REMEDIATION_MAP.get(ref.package_name.lower(), "")
+            if not suggested and distance <= 2:
+                suggested = nearest  # close typosquat — Levenshtein nearest is reliable
+
             results.append(
                 ProfileResult(
                     package_name=ref.package_name,
@@ -141,6 +147,7 @@ class ProfilerAgent:
                     nearest_package=nearest,
                     levenshtein_distance=distance,
                     is_high_risk=total_risk >= self._risk_threshold,
+                    suggested=suggested,
                 )
             )
 

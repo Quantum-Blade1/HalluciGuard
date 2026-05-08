@@ -178,6 +178,94 @@ POPULAR_NPM_PACKAGES: list[str] = [
 ]
 
 # ---------------------------------------------------------------------------
+# Remediation map — curated safe replacements for known hallucinations
+# Keys are hallucinated package names; values are the correct replacement.
+# Used by the Remediator to offer Quick Fix code actions in VS Code.
+# ---------------------------------------------------------------------------
+REMEDIATION_MAP: dict[str, str] = {
+    # Demo workspace packages
+    "securehashlib": "cryptography",
+    "dataflow_engine": "apache-beam",
+    "crypto_helper": "cryptography",
+    "logmanager": "loguru",
+    "secure-fetch-utils": "axios",
+
+    # Python hallucinations → real replacements
+    "safe-crypto": "cryptography",
+    "torch-utils": "torch",
+    "flask-utils": "flask",
+    "api-client": "httpx",
+    "openai-wrapper": "openai",
+    "pandas-extensions": "pandas",
+    "numpy-helpers": "numpy",
+    "scipy-extras": "scipy",
+    "beautifulsoup-utils": "beautifulsoup4",
+    "requests-async": "httpx",
+    "aio-requests": "aiohttp",
+    "django-rest-utils": "djangorestframework",
+    "fastapi-auth": "python-jose",
+    "jwt-secure": "python-jose",
+    "aws-lambda-helpers": "boto3",
+    "s3-boto-wrapper": "boto3",
+    "google-cloud-extras": "google-cloud-storage",
+    "azure-storage-helpers": "azure-storage-blob",
+    "matplotlib-styles": "matplotlib",
+    "seaborn-utils": "seaborn",
+    "plotly-dash-components": "dash",
+    "sqlalchemy-helpers": "sqlalchemy",
+    "pymongo-utils": "pymongo",
+    "redis-async": "redis",
+    "celery-helpers": "celery",
+    "pytest-mocks": "pytest-mock",
+    "logging-utils": "loguru",
+    "config-parser-plus": "python-dotenv",
+    "yaml-utils": "pyyaml",
+    "json-helpers": "orjson",
+    "csv-writer": "csv",
+    "datetime-utils": "arrow",
+    "time-helpers": "pendulum",
+    "math-extras": "numpy",
+    "string-utils": "inflect",
+    "regex-helpers": "re",
+    "os-utils": "pathlib",
+    "sys-helpers": "psutil",
+    "pathlib-extras": "pathlib",
+    "typing-extensions-plus": "typing-extensions",
+    "collections-helpers": "more-itertools",
+    "itertools-extras": "more-itertools",
+    "functools-plus": "toolz",
+    "threading-utils": "concurrent.futures",
+    "multiprocessing-helpers": "multiprocess",
+    "asyncio-utils": "anyio",
+    "subprocess-helpers": "sh",
+    "socket-utils": "websockets",
+    "http-helpers": "httpx",
+    "url-utils": "yarl",
+
+    # JS/npm hallucinations → real replacements
+    "react-utils": "react",
+    "vue-helpers": "vue",
+    "angular-extras": "@angular/core",
+    "node-fetch-wrapper": "node-fetch",
+    "axios-helpers": "axios",
+    "express-utils": "express",
+    "mongoose-helpers": "mongoose",
+    "sequelize-utils": "sequelize",
+    "lodash-plus": "lodash",
+    "underscore-extras": "lodash",
+    "moment-helpers": "dayjs",
+    "date-fns-utils": "date-fns",
+    "jest-mocks": "jest-mock",
+    "mocha-helpers": "mocha",
+    "chai-utils": "chai",
+    "webpack-helpers": "webpack",
+    "babel-utils": "@babel/core",
+    "eslint-extras": "eslint",
+    "prettier-helpers": "prettier",
+    "typescript-utils": "typescript",
+}
+
+# ---------------------------------------------------------------------------
 # Common cross-language packages (exist in one ecosystem, not the other)
 # ---------------------------------------------------------------------------
 JS_ONLY_PACKAGES: frozenset[str] = frozenset({
