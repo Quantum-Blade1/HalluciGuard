@@ -1,5 +1,9 @@
 [
   "securehashlib",
+  "dataflow_engine",
+  "crypto_helper",
+  "logmanager",
+  "secure-fetch-utils",
   "safe-crypto",
   "torch-utils",
   "flask-utils",
