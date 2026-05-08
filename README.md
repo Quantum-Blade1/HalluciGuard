@@ -1,341 +1,285 @@
 # HalluciGuard
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&logoColor=white)](https://python.org)
-[![Gemini](https://img.shields.io/badge/Gemini-2.0%20Flash-orange?logo=google&logoColor=white)](https://ai.google.dev)
 [![LSP](https://img.shields.io/badge/Protocol-LSP-green)](https://microsoft.github.io/language-server-protocol/)
-[![License](https://img.shields.io/badge/License-MIT-purple)](LICENSE)
+[![AI Safety](https://img.shields.io/badge/Focus-AI%20Code%20Security-orange)](#)
+[![Supply Chain](https://img.shields.io/badge/Domain-Software%20Supply%20Chain-purple)](#)
 
 **Real-time AI package hallucination detection for safer code generation.**
 
-HalluciGuard is an editor-integrated security tool that detects suspicious, non-existent, and typo-like package imports commonly produced by AI coding assistants. It acts as a protective layer between generated code and the developer workflow, helping prevent supply-chain risks before unsafe dependencies enter a project.
+HalluciGuard is an editor-integrated security system that detects suspicious, non-existent, typo-like, and ecosystem-mismatched package imports commonly produced by AI coding assistants. It acts as a protective layer between AI-generated code and the developer workflow, helping prevent unsafe dependencies from entering a project unnoticed.
 
 ---
 
 ## Problem
 
-AI coding assistants can confidently generate imports for packages that do not exist, resemble popular packages, or belong to the wrong ecosystem. These hallucinated package names can become security risks if attackers later publish malicious packages under those names.
+AI coding assistants can generate code that looks syntactically correct but includes package names that do not actually exist. These hallucinated package names are especially dangerous because they often sound plausible, follow familiar naming patterns, or closely resemble trusted open-source libraries.
 
-HalluciGuard addresses this risk by scanning code in real time and warning developers when an imported package appears unsafe or hallucinated.
+If developers copy, install, or commit these generated dependencies, attackers can exploit the gap by publishing malicious packages under those hallucinated names. This turns an AI generation error into a software supply-chain attack surface.
+
+HalluciGuard addresses this problem by detecting risky package references at the moment they appear in the editor.
+
+---
+
+## Research Basis
+
+HalluciGuard is grounded in research and industry concerns around AI-assisted development, package hallucination, and open-source supply-chain security.
+
+### AI Package Hallucination
+
+Large language models can generate dependency names that are syntactically plausible but unverified. In code generation tasks, the model may infer a package name from intent, naming conventions, or surrounding context rather than from actual registry existence. This creates a class of dependency errors that traditional syntax checks do not catch.
+
+### Typosquatting
+
+Typosquatting attacks rely on names that are visually or edit-distance similar to popular packages. A developer or model might generate `requets` instead of `requests`, or `numppy` instead of `numpy`. If attackers publish packages under those names, installation can lead to compromise.
+
+### Dependency Confusion
+
+Dependency confusion occurs when package resolution selects an unintended package source or name. Hallucinated package names can amplify this risk because they create demand for package identifiers that were never verified by the developer.
+
+### Open-Source Supply-Chain Risk
+
+Package trust is not binary. Useful security signals include existence, package age, popularity, ecosystem alignment, known vulnerabilities, and similarity to trusted packages. HalluciGuard combines these signals into a weighted risk score.
+
+### Tamper-Evident Security Logging
+
+Security tools should not only detect issues, but also preserve an audit trail. HalluciGuard records scan outcomes with hash chaining so detection and remediation events can be reviewed with integrity guarantees.
 
 ---
 
 ## Solution
 
-HalluciGuard runs as a Language Server Protocol (LSP) middleware for code editors. It analyzes imports from Python, JavaScript, and TypeScript files, validates package existence, scores risk, suggests safer alternatives, and records decisions in a tamper-evident audit trail.
+HalluciGuard runs as a Language Server Protocol middleware between the code editor and the source file. It analyzes imports in real time, validates package references, computes risk, suggests safer alternatives, and reports results through editor diagnostics and a monitoring dashboard.
 
-```
-Code Editor → HalluciGuard LSP → Detection Pipeline → Diagnostics + Dashboard + Audit Log
+```text
+Code Editor -> HalluciGuard LSP -> Detection Pipeline -> Diagnostics + Dashboard + Audit Log
 ```
 
----
-
-## Architecture
-
-```
-AI Code Completion
-        │
-        ▼
-┌───────────────────┐
-│   LSP Middleware  │  ← pygls on port 7777
-│  (HalluciGuard)   │
-└────────┬──────────┘
-         │
-         ▼
-┌────────────────────────────────────────────────────┐
-│              5-Agent Sequential Pipeline            │
-│                                                    │
-│  ┌──────────┐   ┌───────────┐   ┌──────────────┐  │
-│  │ Sentinel │──▶│ Validator │──▶│   Profiler   │  │
-│  │ Agent 1  │   │  Agent 2  │   │   Agent 3    │  │
-│  │          │   │           │   │              │  │
-│  │ AST parse│   │Bloom filter│  │ Risk score   │  │
-│  │ & extract│   │+ registry │   │ 0-100 (6     │  │
-│  │ imports  │   │   lookup  │   │  signals)    │  │
-│  └──────────┘   └───────────┘   └──────┬───────┘  │
-│                                         │          │
-│  ┌──────────┐   ┌───────────┐           │          │
-│  │  Auditor │◀──│Remediator │◀──────────┘          │
-│  │ Agent 5  │   │  Agent 4  │                      │
-│  │          │   │           │                      │
-│  │ SHA-256  │   │ChromaDB + │                      │
-│  │chain log │   │Gemini LLM │                      │
-│  └──────────┘   └───────────┘                      │
-└────────────────────────────────────────────────────┘
-         │
-         ▼
-┌───────────────────┐
-│  Flask Dashboard  │  ← Real-time UI on port 5050
-│  (WebSocket)      │
-└───────────────────┘
-```
+The goal is to make AI-generated dependency risk visible before the developer installs, commits, or ships unsafe code.
 
 ---
 
 ## Key Features
 
-- **Real-time editor diagnostics** for suspicious imports
-- **Python and JavaScript/TypeScript support** through AST-based import extraction
-- **Package existence validation** using local indexes and live registry checks
-- **Typosquatting detection** with Levenshtein distance against popular package names
-- **Known hallucination detection** using a curated hallucination database
-- **Risk scoring engine** combining multiple supply-chain risk signals
-- **Safe package remediation suggestions** using similarity search and Gemini fallback rewriting
-- **CVE awareness** through OSV.dev vulnerability lookups
-- **Tamper-evident audit trail** using SHA-256 hash chaining
-- **Live monitoring dashboard** for scan events, alerts, and audit visibility
+- **Real-time editor diagnostics** for suspicious package imports.
+- **Python and JavaScript/TypeScript support** through AST-based import extraction.
+- **Package existence validation** using local indexes and live registry checks.
+- **Typosquatting detection** using Levenshtein distance against popular packages.
+- **Known hallucination detection** through a curated hallucination database.
+- **Weighted risk scoring** across multiple supply-chain security signals.
+- **Safe package suggestions** using similarity search and remediation logic.
+- **CVE awareness** through OSV.dev vulnerability lookups.
+- **Tamper-evident audit logging** using SHA-256 hash chaining.
+- **Live dashboard telemetry** for scan visibility and security events.
 
 ---
 
-## Detection Pipeline
+## System Architecture
 
-HalluciGuard uses a five-agent sequential pipeline:
+```text
+                       +----------------------+
+                       |   VS Code Extension  |
+                       |   LSP Client Layer   |
+                       +----------+-----------+
+                                  |
+                                  v
+                       +----------------------+
+                       |  HalluciGuard LSP    |
+                       |  Real-Time Scanner   |
+                       +----------+-----------+
+                                  |
+                                  v
+        +-------------+-----------+-----------+-------------+
+        |             |           |           |             |
+        v             v           v           v             v
+   Sentinel      Validator    Profiler   Remediator     Auditor
+ Import ASTs    Registries   Risk Score  Safe Fixes   Hash Chain
+        |             |           |           |             |
+        +-------------+-----------+-----------+-------------+
+                                  |
+                                  v
+                   +-------------------------------+
+                   | Diagnostics + Dashboard Events |
+                   +-------------------------------+
+```
 
-| Agent | Role | Tech |
-| --- | --- | --- |
-| **Sentinel** | Extracts imports, filters stdlib and built-ins | `tree-sitter`, `ast` |
-| **Validator** | Checks package existence on PyPI/npm + hallucination DB | `pybloom-live`, `httpx` |
-| **Profiler** | Computes a 0–100 risk score from multiple signals | `rapidfuzz`, `OSV.dev` |
-| **Remediator** | Suggests safe alternatives, rewrites imports | `chromadb`, `google-adk` |
-| **Auditor** | Records outcomes in a tamper-evident audit log | `canonicaljson`, `hashlib` |
+HalluciGuard is organized into three major layers.
 
-### Five-Agent Flowchart
+### 1. Editor Integration Layer
+
+The VS Code extension acts as the client interface. It connects to the HalluciGuard language server and receives diagnostics that appear directly in the developer's editor. This makes hallucinated dependency detection part of the normal coding flow rather than a separate security step.
+
+### 2. Detection Pipeline Layer
+
+The detection pipeline is a five-agent sequential system:
+
+| Agent | Responsibility |
+| --- | --- |
+| **Sentinel** | Parses source code, extracts imports, filters standard library and built-in modules |
+| **Validator** | Checks package existence across package indexes, registries, and hallucination data |
+| **Profiler** | Computes a 0-100 risk score using supply-chain risk signals |
+| **Remediator** | Suggests safer alternatives and possible package replacements |
+| **Auditor** | Records scan decisions in a tamper-evident hash-chained log |
+
+### 3. Intelligence and Data Layer
+
+The pipeline uses multiple data sources and analysis methods:
+
+| Component | Purpose |
+| --- | --- |
+| **Bloom Filter** | Fast local package existence checks |
+| **PyPI / npm Registry Clients** | Live package validation |
+| **Hallucination Database** | Known AI-generated suspicious package names |
+| **Levenshtein Similarity** | Typosquat and near-name detection |
+| **OSV.dev Client** | Known vulnerability lookup |
+| **ChromaDB Store** | Similarity-based safe package retrieval |
+| **Hash Chain Utility** | Audit log integrity verification |
+
+---
+
+## Detection Flow
 
 ```mermaid
 flowchart TD
-    A([🖊️ AI Code Completion]) --> B[LSP Middleware\npygls · port 7777]
-
-    B --> C
-
-    subgraph PIPELINE ["  5-Agent Sequential Pipeline  "]
-        C["🔍 Agent 1 · Sentinel\nAST parse source code\nExtract all import statements\nFilter out stdlib / built-ins"]
-        C -->|No imports found| Z1([✅ Pass through unchanged])
-        C -->|Imports detected| D
-
-        D["🌐 Agent 2 · Validator\nBloom filter check — O(1)\nAsync PyPI / npm registry lookup\nHallucination DB match"]
-        D -->|All packages exist| E
-        D -->|Unknown / hallucinated| E
-
-        E["📊 Agent 3 · Profiler\nWeighted risk score 0–100\n─────────────────────\nTyposquat  30%\nHallucination DB  25%\nRecency  15%\nPopularity  15%\nCVE  10%\nCross-lang  5%"]
-        E -->|Score ≤ 65 — low risk| F2
-        E -->|Score > 65 — high risk 🚨| F1
-
-        F1["🔧 Agent 4 · Remediator\nQuery ChromaDB for safe alternatives\nGemini 2.0 Flash rewrites import\nAST patch applied to code"]
-        F2([✅ Package passed — no action])
-
-        F1 --> G
-        F2 --> G
-
-        G["🔒 Agent 5 · Auditor\nSHA-256 chained JSONL log\nTamper-evident audit trail\nAction: PASSED / BLOCKED / REMEDIATED"]
-    end
-
-    G --> H([📡 Diagnostics sent to editor])
-    G --> I([📊 Dashboard updated via WebSocket])
-    G --> J([📄 Audit log written to disk])
+    A["Source code opened or edited"] --> B["LSP receives document content"]
+    B --> C["Sentinel extracts imports"]
+    C --> D{"Third-party package?"}
+    D -->|No| E["Ignore standard library or local import"]
+    D -->|Yes| F["Validator checks package existence"]
+    F --> G["Profiler computes risk score"]
+    G --> H{"High risk?"}
+    H -->|No| I["Mark package as passed"]
+    H -->|Yes| J["Generate warning or error diagnostic"]
+    J --> K["Remediator suggests safer package"]
+    I --> L["Auditor records event"]
+    K --> L
+    L --> M["Dashboard and audit trail updated"]
 ```
 
-### Risk Signals
+---
 
-| Signal | Weight |
-|--------|--------|
-| Typosquat similarity (Levenshtein distance) | 30% |
-| Known hallucination database match | 25% |
-| Package recency (newly published = higher risk) | 15% |
-| Popularity (download count on PyPI/npm) | 15% |
-| Known CVEs via OSV.dev | 10% |
-| Cross-ecosystem confusion | 5% |
+## Risk Model
 
-> Packages scoring above **65/100** are flagged as high-risk and remediated.
+HalluciGuard assigns each package a weighted risk score from `0` to `100`.
+
+| Signal | Why It Matters |
+| --- | --- |
+| **Package does not exist** | Strong indicator of hallucination or unresolved dependency |
+| **Near match to popular package** | Suggests typo or typosquatting risk |
+| **Known hallucination match** | Package appears in curated hallucination patterns |
+| **New or low-popularity package** | Recently published or obscure packages carry higher risk |
+| **Cross-ecosystem mismatch** | Example: importing npm-style packages in Python |
+| **Known vulnerabilities** | Existing CVEs increase package risk |
+
+The score determines whether a package is treated as safe, suspicious, or high-risk.
 
 ---
 
 ## Example
 
 ```python
-import requests        # ✅ real package — passes
-import requets         # ⚠️  typo of requests — flagged
-import securehashlib   # 🚨 known hallucination — blocked
-import dataflow_engine # 🚨 non-existent — blocked
+import requests
+import requets
+import securehashlib
+import dataflow_engine
+```
+
+Expected interpretation:
+
+| Import | Result |
+| --- | --- |
+| `requests` | Real package, low risk |
+| `requets` | Likely typo of `requests` |
+| `securehashlib` | Known hallucinated package pattern |
+| `dataflow_engine` | Suspicious or non-existent dependency |
+
+---
+
+## Codebase Architecture
+
+```text
+src/core/
+  lsp_proxy.py       # Editor-facing LSP server
+  pipeline.py        # Five-agent orchestration
+  config.py          # Risk weights and constants
+
+src/agents/
+  sentinel.py        # Import extraction
+  validator.py       # Registry and hallucination checks
+  profiler.py        # Risk scoring
+  remediator.py      # Safe alternative suggestions
+  auditor.py         # Hash-chained audit logging
+
+src/data/
+  bloom_filter.py    # Fast package existence checks
+  registry_client.py # PyPI and npm validation
+  cve_client.py      # OSV.dev vulnerability checks
+  chroma_manager.py  # Safe-package similarity search
+
+src/utils/
+  ast_parser.py      # Python and JavaScript import parsing
+  levenshtein.py     # Typosquat detection
+  hash_chain.py      # Audit integrity verification
+
+dashboard/           # Monitoring dashboard
+vscode-extension/    # VS Code LSP client
+tests/               # Automated test suite
 ```
 
 ---
 
-## Quick Start
-
-### Prerequisites
-- Python 3.11+
-- [Gemini API key](https://aistudio.google.com/app/apikey) (free tier works)
-
-### 1. Clone & Install
-
-```bash
-git clone https://github.com/your-username/HalluciGuard.git
-cd HalluciGuard
-
-python3 -m venv .venv
-source .venv/bin/activate
-
-pip install -r requirements.txt
-```
-
-### 2. Configure
-
-```bash
-cp .env.example .env
-# Edit .env and set GEMINI_API_KEY=your-key-here
-```
-
-### 3. Seed Data (First Time Only)
-
-```bash
-python3 scripts/seed_bloom.py        # downloads 800k+ package names
-python3 scripts/seed_chroma.py       # seeds safe-package vector store
-python3 scripts/seed_hallucination_db.py
-```
-
-### 4. Run
-
-```bash
-python3 -m src.main --dashboard
-```
-
-| Service | Address |
-|---------|---------|
-| LSP Proxy | `tcp://localhost:7777` |
-| Dashboard | `http://localhost:5050` |
-
----
-
-## Demo Testing
-
-Run the included demo script in a separate terminal:
-
-```bash
-python3 demo_test.py
-```
-
-Or test directly via the REST API:
-
-```bash
-curl -X POST http://localhost:5050/api/scan \
-  -H "Content-Type: application/json" \
-  -d '{"code": "import securehashlib\nimport requests", "language": "python"}'
-```
-
----
-
-## API Reference
-
-### `POST /api/scan`
-
-**Request:** `{ "code": "...", "language": "python" | "javascript" }`
-
-**Response:**
-```json
-{
-  "profiles": [{ "package_name": "securehashlib", "risk_score": 95.0, "is_high_risk": true }],
-  "remediations": [{ "original_package": "securehashlib", "suggested_package": "hashlib" }],
-  "patched_code": "import hashlib",
-  "was_modified": true,
-  "processing_time_ms": 342.1
-}
-```
-
-### `GET /api/audit` — last 50 tamper-evident audit entries
-### `GET /api/stats` — running counters (scans, flags, remediations, avg risk)
-
----
-
-## Project Structure
-
-```
-src/
-  core/
-    lsp_proxy.py         # Editor-facing LSP server (port 7777)
-    pipeline.py          # Five-agent orchestration
-    config.py            # Risk weights, constants, env config
-  agents/
-    sentinel.py          # Import extraction
-    validator.py         # Registry and hallucination checks
-    profiler.py          # Risk scoring
-    remediator.py        # Safe alternative suggestions
-    auditor.py           # Hash-chained audit logging
-  data/
-    bloom_filter.py      # Fast O(1) package existence checks
-    registry_client.py   # Async PyPI and npm validation
-    cve_client.py        # OSV.dev vulnerability checks
-    chroma_manager.py    # Safe-package similarity search
-  utils/
-    ast_parser.py        # Python and JavaScript import parsing
-    levenshtein.py       # Typosquat detection
-    hash_chain.py        # Audit integrity verification
-
-dashboard/               # Flask + Socket.IO monitoring dashboard
-vscode-extension/        # VS Code LSP client (TypeScript)
-scripts/                 # Data seeding scripts
-tests/                   # Automated test suite
-demo_test.py             # Demo test runner
-```
-
----
-
-## Tech Stack
+## Technical Stack
 
 | Layer | Technology |
-|---|---|
-| Language Server | `pygls` (LSP) |
-| AST Parsing | `tree-sitter`, Python `ast` |
-| Package Validation | PyPI/npm APIs, `pybloom-live` |
-| Typosquat Detection | `rapidfuzz` (Levenshtein) |
-| Vulnerability Lookup | OSV.dev + SQLite cache |
-| Safe Package RAG | `chromadb`, `sentence-transformers` |
-| AI Remediation | Gemini 2.0 Flash (`google-adk`) |
-| Audit Chain | `canonicaljson`, `hashlib` SHA-256 |
-| Dashboard | `Flask`, `Flask-SocketIO` |
-| Editor Extension | TypeScript (VS Code) |
+| --- | --- |
+| Language Server | pygls, LSP |
+| Import Parsing | Python AST, Tree-sitter |
+| Package Validation | PyPI API, npm Registry API |
+| Fast Lookup | Bloom filter |
+| Similarity Detection | RapidFuzz, Levenshtein distance |
+| Vulnerability Intelligence | OSV.dev |
+| Safe Package Retrieval | ChromaDB |
+| Remediation | Gemini-assisted rewrite with fallback logic |
+| Dashboard | Flask, Flask-SocketIO |
+| Extension | TypeScript, VS Code Language Client |
+| Audit Integrity | SHA-256, canonical JSON |
 
 ---
 
-## Running Tests
+## Demo Impact
 
-```bash
-pytest
-pytest -v
-```
+HalluciGuard demonstrates how AI-generated dependency risk can be detected during development rather than after installation or deployment.
 
-Known hallucinated packages: `securehashlib`, `dataflow_engine`, `crypto-helper`
-Known safe packages: `flask`, `numpy`, `requests`
+It is useful for:
+
+- Catching hallucinated package names from AI-generated code.
+- Preventing typo-style dependency mistakes.
+- Surfacing package risk directly inside the editor.
+- Giving security teams an auditable record of dependency decisions.
+- Encouraging safer use of AI coding assistants in real software projects.
 
 ---
 
-## Configuration
+## Current Status
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `GEMINI_API_KEY` | — | Required for AI remediation |
-| `HALLUCIGUARD_PORT` | `7777` | LSP server port |
-| `RISK_THRESHOLD` | `65` | Score above which packages are blocked |
-| `AUDIT_LOG_PATH` | `./audit_log.jsonl` | Tamper-evident audit log path |
-| `DATA_DIR` | `./data` | Root for bloom/chroma/CVE data |
+- Python test suite passes locally.
+- VS Code extension compiles.
+- npm dependency audit reports no known vulnerabilities.
+- Dashboard is intended for local demo use and is not production-hardened.
 
 ---
 
 ## Future Scope
 
-- Authentication and access control for dashboard APIs
-- Safer AST-based remediation instead of broad regex replacement
-- Expanded ecosystem support: Go, Rust, Java
-- CI/CD integration for PR-level hallucination scanning
-- Pull request comments for risky generated dependencies
-- Fine-tuned hallucination classifier to replace heuristic weights
+- Authentication and access control for dashboard APIs.
+- Safer AST-based remediation instead of broad text replacement.
+- Expanded ecosystem support for Go, Rust, Java, and Ruby.
+- CI/CD integration for pull request scanning.
+- Risk explanations with citations and confidence scores.
+- Organization-level hallucination intelligence database.
 
 ---
 
 ## Team Note
 
 HalluciGuard was built as a hackathon project to explore a growing software supply-chain problem: AI systems can invent dependencies, and those invented names can become real attack surfaces. The goal is to make that risk visible, actionable, and easy to catch during development.
-
----
-
-## License
-
-MIT License — see [LICENSE](LICENSE) for details.
