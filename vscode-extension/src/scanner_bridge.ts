@@ -147,8 +147,12 @@ export class ScannerBridge extends EventEmitter {
         }
 
         const config = vscode.workspace.getConfiguration('halluciguard');
+        const userSetting = config.get<string>('pythonPath', '');
         const candidates: string[] = [
-            config.get<string>('pythonPath', 'python3'),
+            // Venv next to extension root always wins — has all deps pre-installed
+            path.resolve(this.extensionPath, '..', '.venv', 'bin', 'python'),
+            path.resolve(this.extensionPath, '..', '.venv', 'bin', 'python3'),
+            ...(userSetting ? [userSetting] : []),
             'python3',
             'python',
         ];
