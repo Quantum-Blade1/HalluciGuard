@@ -33,26 +33,28 @@ def min_levenshtein_distance(package_name: str, language: str) -> tuple[str, int
         Tuple of (closest_package_name, distance).
     """
     corpus = POPULAR_PYPI_PACKAGES if language == "python" else POPULAR_NPM_PACKAGES
-    name_lower = package_name.lower()
-    
+    # Normalize: PyPI treats hyphens and underscores as equivalent (PEP 508)
+    name_normalized = package_name.lower().replace("_", "-")
+    corpus_normalized = [c.lower().replace("_", "-") for c in corpus]
+
     # Exact match → distance 0
-    if name_lower in {c.lower() for c in corpus}:
-        return (package_name, 0)
-        
+    if name_normalized in corpus_normalized:
+        idx = corpus_normalized.index(name_normalized)
+        return (corpus[idx], 0)
+
     if not RAPIDFUZZ_AVAILABLE:
-        # Fallback if rapidfuzz isn't available
-        return _fallback_min_distance(package_name, corpus)
-        
+        return _fallback_min_distance(name_normalized, corpus_normalized)
+
     # extractOne with Levenshtein.distance scorer returns the minimum distance
     result = rf_process.extractOne(
-        package_name, 
-        corpus, 
+        name_normalized,
+        corpus_normalized,
         scorer=Levenshtein.distance
     )
     
     if result:
-        match, distance, _index = result
-        return match, distance
+        match_normalized, distance, index = result
+        return corpus[index], distance
     return ("", 999)
 
 def typosquat_score(distance: int) -> float:

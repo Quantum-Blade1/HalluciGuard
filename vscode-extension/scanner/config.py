@@ -163,6 +163,10 @@ POPULAR_PYPI_PACKAGES: list[str] = [
     "stripe", "twilio", "sendgrid", "sentry-sdk", "datadog", "prometheus-client",
     "opentelemetry-api", "structlog", "loguru", "colorama", "tqdm",
     "tabulate", "prettytable", "fire", "docopt", "argcomplete",
+    "apache-beam", "apache-airflow", "dask", "pyspark", "ray",
+    "transformers", "diffusers", "langchain", "openai", "anthropic",
+    "xgboost", "lightgbm", "catboost", "statsmodels", "nltk", "spacy",
+    "fasttext", "gensim", "networkx", "sympy", "pyarrow", "polars",
 ]
 
 POPULAR_NPM_PACKAGES: list[str] = [
