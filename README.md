@@ -1,139 +1,137 @@
 # HalluciGuard
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&logoColor=white)](https://python.org)
-[![LSP](https://img.shields.io/badge/Protocol-LSP-green)](https://microsoft.github.io/language-server-protocol/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3%2B-blue?logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![VS Code](https://img.shields.io/badge/VS%20Code-Extension-007ACC?logo=visualstudiocode&logoColor=white)](https://code.visualstudio.com)
 [![AI Safety](https://img.shields.io/badge/Focus-AI%20Code%20Security-orange)](#)
 [![Supply Chain](https://img.shields.io/badge/Domain-Software%20Supply%20Chain-purple)](#)
+[![License](https://img.shields.io/badge/License-MIT-green)](#license)
 
-**Real-time AI package hallucination detection for safer code generation.**
+> **Google India Hackathon 2025**
 
-HalluciGuard is an editor-integrated security system that detects suspicious, non-existent, typo-like, and ecosystem-mismatched package imports commonly produced by AI coding assistants. It acts as a protective layer between AI-generated code and the developer workflow, helping prevent unsafe dependencies from entering a project unnoticed.
+**Real-time AI package hallucination detection, directly inside your editor.**
 
-> **Google India Hackathon 2025 Project**
-
----
-
-## Problem
-
-AI coding assistants can generate code that looks syntactically correct but includes package names that do not actually exist. These hallucinated package names are especially dangerous because they often sound plausible, follow familiar naming patterns, or closely resemble trusted open-source libraries.
-
-If developers copy, install, or commit these generated dependencies, attackers can exploit the gap by publishing malicious packages under those hallucinated names. This turns an AI generation error into a software supply-chain attack surface.
-
-HalluciGuard addresses this problem by detecting risky package references at the moment they appear in the editor.
+HalluciGuard is a VS Code extension that catches hallucinated, typosquatted, and non-existent package imports in AI-generated code — before they become a supply-chain attack surface. It runs a 5-agent Python scanner in the background, shows inline squiggly-line diagnostics, and offers one-click Quick Fix remediations, all without leaving your editor.
 
 ---
 
-## Research Basis
+## The Problem
 
-HalluciGuard is grounded in research and industry concerns around AI-assisted development, package hallucination, and open-source supply-chain security.
+AI coding assistants (Copilot, Cursor, ChatGPT) frequently generate `import` statements for packages that **do not exist**. These hallucinated names are dangerous because:
 
-### AI Package Hallucination
+- They sound plausible and follow real naming conventions
+- Attackers actively monitor for hallucinated names and register malicious packages under them
+- Traditional linters and type-checkers cannot catch them — the syntax is valid
 
-Large language models can generate dependency names that are syntactically plausible but unverified. In code generation tasks, the model may infer a package name from intent, naming conventions, or surrounding context rather than from actual registry existence. This creates a class of dependency errors that traditional syntax checks do not catch.
-
-### Typosquatting
-
-Typosquatting attacks rely on names that are visually or edit-distance similar to popular packages. A developer or model might generate `requets` instead of `requests`, or `numppy` instead of `numpy`. If attackers publish packages under those names, installation can lead to compromise.
-
-### Dependency Confusion
-
-Dependency confusion occurs when package resolution selects an unintended package source or name. Hallucinated package names can amplify this risk because they create demand for package identifiers that were never verified by the developer.
-
-### Open-Source Supply-Chain Risk
-
-Package trust is not binary. Useful security signals include existence, package age, popularity, ecosystem alignment, known vulnerabilities, and similarity to trusted packages. HalluciGuard combines these signals into a weighted risk score.
-
-### Tamper-Evident Security Logging
-
-Security tools should not only detect issues, but also preserve an audit trail. HalluciGuard records scan outcomes with hash chaining so detection and remediation events can be reviewed with integrity guarantees.
+HalluciGuard closes this gap by validating every import against 802,000+ known packages, a curated hallucination database, and live PyPI/npm registry checks — at the moment the code is written.
 
 ---
 
-## Solution
+## Research Foundation
 
-HalluciGuard runs as a VS Code extension with a bundled Python scanner. It analyzes imports in real time, validates package references, computes risk, suggests safer alternatives, and reports results through editor diagnostics.
-
-```text
-Code Editor → HalluciGuard Extension → Python Scanner → Detection Pipeline → Diagnostics + Quick Fix
-```
-
-The goal is to make AI-generated dependency risk visible before the developer installs, commits, or ships unsafe code.
+| Threat | Research Basis |
+| --- | --- |
+| AI package hallucination | Lanyado et al., *"Can You Trust ChatGPT's Package Recommendations?"* (2023) |
+| Typosquatting risk | Vu et al., *MalOSS*, ICSE 2020 |
+| Supply-chain attack taxonomy | Ohm et al., *"Backstabber's Knife Collection"* (2020) |
+| Risk signal weighting | Spracklen et al., *"We Have a Package for You!"*, USENIX Security 2025 |
+| Vulnerability intelligence | OSV.dev open vulnerability database |
 
 ---
 
 ## Key Features
 
-- **Real-time editor diagnostics** — yellow/red squiggly lines on suspicious package imports.
-- **Python and JavaScript support** through AST-based import extraction.
-- **Package existence validation** using local bloom filter (802k packages) and live registry checks.
-- **Typosquatting detection** using Levenshtein distance against 600+ popular packages.
-- **Known hallucination detection** through a curated hallucination database (77+ entries).
-- **Weighted risk scoring** across 6 supply-chain security signals (0–100).
-- **One-click Quick Fix** — Remediator suggests and applies the correct package replacement.
-- **CVE awareness** through OSV.dev vulnerability lookups with SQLite caching.
-- **Sidebar TreeView** — hierarchical results: File → Package → Risk details → Jump to line.
-- **Rich WebView panel** — animated risk gauge per package with signal breakdown.
-- **Works offline** — bloom filter check requires no network; registry check is best-effort.
+| Feature | Details |
+| --- | --- |
+| **Inline diagnostics** | Yellow (WARN) and red (BLOCK) squiggly lines directly on the import statement |
+| **5-agent detection pipeline** | Sentinel → Validator → Profiler → Remediator → Auditor |
+| **802k package bloom filter** | Sub-millisecond local existence check, no network needed |
+| **Live registry validation** | Async PyPI + npm API checks for bloom filter misses |
+| **Weighted risk scoring** | 0–100 score across 6 supply-chain signals |
+| **One-click Quick Fix** | Remediator replaces hallucinated import with the correct package |
+| **CVE awareness** | OSV.dev vulnerability lookup with 24-hour SQLite cache |
+| **Tamper-evident audit log** | SHA-256 hash-chained JSONL log of every scan decision |
+| **Sidebar TreeView** | Hierarchical results: File → Package → Risk signals → Jump to line |
+| **Rich WebView panel** | Animated risk gauge (0–100 arc) per package with full signal breakdown |
+| **Python + JavaScript** | AST-based import extraction for both ecosystems |
 
 ---
 
 ## System Architecture
 
 ```text
-                       +----------------------+
-                       |   VS Code Extension  |
-                       |  (TypeScript Layer)  |
-                       +----------+-----------+
-                                  |
-                                  v
-                       +----------------------+
-                       |  Bundled Python       |
-                       |  Scanner (NDJSON)     |
-                       +----------+-----------+
-                                  |
-                                  v
-        +-------------+-----------+-----------+
-        |             |           |           |
-        v             v           v           v
-   Sentinel      Validator    Profiler   Remediator
- Import ASTs    Registries   Risk Score  Quick Fix
-        |             |           |           |
-        +-------------+-----------+-----------+
-                                  |
-                                  v
-                   +-------------------------------+
-                   |  Inline Diagnostics + Sidebar  |
-                   +-------------------------------+
+┌─────────────────────────────────────────────────────────┐
+│                  VS Code Extension                       │
+│             (TypeScript — editor layer)                  │
+│  Status Bar · Sidebar TreeView · Inline Diagnostics      │
+│  Quick Fix Actions · Rich WebView Panel                  │
+└──────────────────────┬──────────────────────────────────┘
+                       │  spawn subprocess + read NDJSON stdout
+                       ▼
+┌─────────────────────────────────────────────────────────┐
+│            Bundled Python Scanner                        │
+│         halluciguard_scanner.py  (CLI)                   │
+│   Streams one JSON object per line to stdout             │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+          ┌────────────▼────────────┐
+          │   5-Agent Pipeline       │
+          └────────────┬────────────┘
+                       │
+     ┌─────────────────┼──────────────────────┐
+     │                 │                      │
+     ▼                 ▼                      ▼
+┌─────────┐      ┌──────────┐         ┌──────────┐
+│ Agent 1 │      │ Agent 2  │         │ Agent 3  │
+│Sentinel │─────▶│Validator │────────▶│ Profiler │
+│AST Parse│      │Bloom+API │         │Risk 0-100│
+└─────────┘      └──────────┘         └─────┬────┘
+                                            │
+                              ┌─────────────┴─────────────┐
+                              │                           │
+                              ▼                           ▼
+                       ┌──────────┐               ┌──────────┐
+                       │ Agent 4  │               │ Agent 5  │
+                       │Remediator│               │ Auditor  │
+                       │Quick Fix │               │Hash Chain│
+                       └──────────┘               └──────────┘
+                              │                           │
+                              ▼                           ▼
+                    ┌──────────────────┐    ┌─────────────────────┐
+                    │  Editor Diagnostics│   │  audit_log.jsonl    │
+                    │  + Sidebar Results │   │  (tamper-evident)   │
+                    └──────────────────┘    └─────────────────────┘
 ```
 
-HalluciGuard is organized into three major layers.
+### Layer 1 — VS Code Extension (TypeScript)
 
-### 1. Editor Integration Layer
+Manages the editor experience. Spawns the Python scanner as a subprocess, parses the NDJSON result stream, and renders findings as inline squiggly lines, a sidebar TreeView, and a rich WebView panel. Registers Quick Fix code actions for one-click import remediation.
 
-The VS Code extension acts as the client interface. It spawns a bundled Python scanner subprocess and receives NDJSON results streamed to stdout. Diagnostics appear directly in the developer's editor as inline squiggly lines and a sidebar panel, making hallucinated dependency detection part of the normal coding flow.
+### Layer 2 — Python Scanner (Bundled)
 
-### 2. Detection Pipeline Layer
+A self-contained CLI (`halluciguard_scanner.py`) that walks a workspace, runs the 5-agent pipeline on every `.py` and `.js` file, and streams results to stdout as NDJSON. No external server. No API keys.
 
-The detection pipeline is a four-agent sequential system (v1):
+### Layer 3 — 5-Agent Detection Pipeline
 
-| Agent | Responsibility | Status |
-| --- | --- | --- |
-| **Sentinel** | Parses source code, extracts imports, filters stdlib and built-ins | ✅ Working |
-| **Validator** | Checks package existence via bloom filter, PyPI/npm APIs, and hallucination DB | ✅ Working |
-| **Profiler** | Computes a 0–100 risk score using 6 weighted supply-chain signals | ✅ Working |
-| **Remediator** | Suggests curated safe replacements, applies one-click Quick Fix in editor | ✅ Working |
-| **Auditor** | SHA-256 hash-chained JSONL audit log — every scan decision logged with `chain_valid` verification | ✅ Working |
+| # | Agent | Role | Status |
+| --- | --- | --- | --- |
+| 1 | **Sentinel** | AST-parses source code, extracts all imports, filters Python stdlib and JS built-ins | ✅ |
+| 2 | **Validator** | Bloom filter check (O(1)) → async PyPI/npm API → hallucination DB match | ✅ |
+| 3 | **Profiler** | Computes weighted 0–100 risk score across 6 supply-chain signals | ✅ |
+| 4 | **Remediator** | Looks up curated safe replacement, surfaces as VS Code Quick Fix code action | ✅ |
+| 5 | **Auditor** | Writes every scan decision to a SHA-256 hash-chained JSONL audit log | ✅ |
 
-### 3. Intelligence and Data Layer
+### Layer 4 — Intelligence & Data
 
 | Component | Purpose |
 | --- | --- |
-| **Bloom Filter** | Fast local package existence checks (802k PyPI + npm packages) |
-| **PyPI / npm Registry Clients** | Live async package validation via httpx |
-| **Hallucination Database** | 77+ curated AI-generated suspicious package names |
-| **Remediation Map** | 80+ curated safe replacements for known hallucinations |
-| **Levenshtein Similarity** | Typosquat and near-name detection via rapidfuzz |
-| **OSV.dev Client** | Known CVE vulnerability lookup with 24h SQLite cache |
+| **Bloom Filter** | 802,360 PyPI + npm package names, 0.1% FP rate, O(1) lookup |
+| **Hallucination Database** | 77+ curated names known to be hallucinated by LLMs |
+| **Remediation Map** | 80+ curated safe replacements keyed to known hallucinations |
+| **Registry Clients** | Async `httpx` HTTP/2 clients for PyPI JSON API and npm registry |
+| **Levenshtein Engine** | `rapidfuzz` distance against 600+ popular packages for typosquat detection |
+| **CVE Client** | OSV.dev API with SQLite cache (24-hour TTL) |
+| **Hash Chain** | SHA-256 per-entry with `prev_hash` linkage; `verify_integrity()` checks full chain |
 
 ---
 
@@ -141,163 +139,181 @@ The detection pipeline is a four-agent sequential system (v1):
 
 ```mermaid
 flowchart TD
-    A["Source code opened or edited"] --> B["Extension spawns Python scanner"]
-    B --> C["Sentinel extracts imports"]
-    C --> D{"Third-party package?"}
-    D -->|No| E["Ignore stdlib / local import"]
-    D -->|Yes| F["Validator: bloom filter + registry + hallucination DB"]
-    F --> G["Profiler computes risk score 0–100"]
-    G --> H{"Score ≥ threshold?"}
-    H -->|No| I["Package passes — no squiggly"]
-    H -->|Yes| J["Yellow/red squiggly on import line"]
-    J --> K["Remediator: curated replacement from map"]
-    K --> L["Developer clicks Quick Fix → import rewritten"]
-    I --> M["Results shown in sidebar + WebView"]
-    L --> M
+    A["Developer opens / saves a .py or .js file"] --> B["VS Code extension spawns Python scanner"]
+    B --> C["Agent 1 — Sentinel: AST extracts imports"]
+    C --> D{"stdlib or built-in?"}
+    D -->|Yes| E["Skip — not a third-party package"]
+    D -->|No| F["Agent 2 — Validator: bloom filter + PyPI/npm + hallucination DB"]
+    F --> G["Agent 3 — Profiler: compute weighted risk score 0–100"]
+    G --> H["Agent 5 — Auditor: log decision to hash-chained audit trail"]
+    G --> I{"Score ≥ threshold (65)?"}
+    I -->|No| J["✅ Package passes — no diagnostic"]
+    I -->|Yes| K["⚠ Yellow/red squiggly on import line"]
+    K --> L["Agent 4 — Remediator: look up safe replacement"]
+    L --> M["Developer clicks 💡 Quick Fix → import rewritten in place"]
+    J --> N["Results streamed to extension via NDJSON"]
+    M --> N
+    N --> O["Sidebar TreeView + WebView panel updated"]
 ```
 
 ---
 
-## Risk Model
+## Risk Scoring Model
 
-HalluciGuard assigns each package a weighted risk score from `0` to `100`.
+Every package receives a weighted risk score from `0` to `100`.
 
-| Signal | Weight | Why It Matters |
+| Signal | Weight | Trigger Condition |
 | --- | --- | --- |
-| **Typosquat distance** | 30 | Near match to popular package suggests squatting risk |
-| **Hallucination DB hit** | 25 | Package appears in curated hallucination patterns |
-| **Not on any registry** | 25 | Strong indicator of hallucination or unresolved dependency |
-| **New or low-popularity** | 15 | Recently published or obscure packages carry higher risk |
-| **Cross-ecosystem mismatch** | 5 | Importing npm-style packages in Python (or vice versa) |
-| **Known vulnerabilities** | 10 | Existing CVEs increase package risk |
+| **Typosquat distance** | 30 | Levenshtein distance ≤ 2 from a popular package |
+| **Hallucination DB hit** | 25 | Exact match in curated hallucination database |
+| **Not on any registry** | 25 | Absent from PyPI and npm after live check |
+| **New / low-popularity** | 15 | Package age < 90 days or download count < 1,000 |
+| **Known vulnerabilities** | 10 | CVE found via OSV.dev |
+| **Cross-ecosystem mismatch** | 5 | npm package imported in Python (or vice versa) |
 
-The default threshold is **65**. Packages scoring ≥ 65 are flagged (WARN); ≥ 80 are blocked (BLOCK).
+**Thresholds:** `ALLOW` < 65 · `WARN` ≥ 65 · `BLOCK` ≥ 80
+
+---
+
+## Scanner NDJSON Protocol
+
+The Python scanner streams one JSON object per line to stdout. The extension parses this stream in real time.
+
+```jsonc
+// Progress — one per file as it starts scanning
+{"type": "progress", "file": "src/auth.py", "status": "scanning"}
+
+// Finding — one per flagged package
+{"type": "finding", "file": "src/auth.py", "package": "securehashlib", "line": 2,
+ "risk_score": 68.0, "action": "WARN", "flags": ["HALLUCINATION_DB_HIT", "NOT_IN_REGISTRY"],
+ "nearest": "hashlib", "distance": 6, "suggested": "cryptography", "language": "python"}
+
+// Summary — final line after all files scanned
+{"type": "summary", "files_scanned": 3, "packages_found": 11, "high_risk": 5, "passed": 6, "duration_ms": 1887}
+
+// Audit summary — chain integrity report
+{"type": "audit_summary", "entries_logged": 11, "chain_valid": true}
+```
+
+`action` values: `BLOCK` (score ≥ 80) · `WARN` (score ≥ 65) · `ALLOW` (score < 65)
 
 ---
 
 ## Demo
 
-The `demo_workspace/` directory contains realistic AI-generated code with hallucinated imports:
+The `demo_workspace/` directory contains realistic AI-generated code seeded with hallucinated imports.
 
 ```python
-# src/auth.py
-import securehashlib      # ⚠ hallucinated — risk 68 → suggested: cryptography
-import dataflow_engine    # ⚠ hallucinated — risk 68 → suggested: apache-beam
+# src/auth.py — 2 hallucinations
+import securehashlib      # ⚠ risk 68  →  suggested: cryptography
+import dataflow_engine    # ⚠ risk 68  →  suggested: apache-beam
 import requests           # ✅ real package — passes
 
-# src/utils.py
-import crypto_helper      # ⚠ hallucinated — risk 69 → suggested: cryptography
-from logmanager import Logger  # ⚠ hallucinated — risk 69 → suggested: loguru
+# src/utils.py — 2 hallucinations
+import crypto_helper      # ⚠ risk 69  →  suggested: cryptography
+from logmanager import Logger  # ⚠ risk 69  →  suggested: loguru
 import numpy as np        # ✅ real package — passes
 ```
 
 ```javascript
-// frontend/index.js
-const secureFetch = require('secure-fetch-utils');  // ⚠ hallucinated — risk 68 → suggested: axios
-const axios = require('axios');   // ✅ real package — passes
+// frontend/index.js — 1 hallucination
+const secureFetch = require('secure-fetch-utils');  // ⚠ risk 68  →  suggested: axios
+const axios = require('axios');   // ✅ real — passes
+const _ = require('lodash');      // ✅ real — passes
 ```
 
-**Verified results:** 5 hallucinations flagged · 6 real packages pass · 0 false positives
+**Verified:** 5 hallucinations flagged · 6 real packages pass · 0 false positives
 
-### Running the CLI scanner
+### Run via CLI
 
 ```bash
-source .venv/bin/activate
+git clone https://github.com/Quantum-Blade1/HalluciGuard.git
+cd HalluciGuard
+python -m venv .venv && source .venv/bin/activate
+pip install -r scanner/requirements.txt
 python scanner/halluciguard_scanner.py --workspace demo_workspace/
 ```
 
-### Running the VS Code extension
+### Run via VS Code Extension
 
 ```bash
 cd vscode-extension
 npm install && npm run compile
-# Press F5 (or Run → Start Debugging → Run Extension) in VS Code
-# Open demo_workspace/ in the new window → View → Command Palette → HalluciGuard: Scan Workspace
+# In VS Code: Run → Start Debugging → Run Extension (Fn+F5)
+# In the new window: File → Open Folder → demo_workspace/
+# Command Palette → HalluciGuard: Scan Workspace
 ```
 
 ---
 
 ## Installation
 
-### From Source (dev)
+**Requirements:** VS Code 1.85+ · Python 3.9+ · pip
 
 ```bash
 git clone https://github.com/Quantum-Blade1/HalluciGuard.git
 cd HalluciGuard/vscode-extension
 npm install
 npm run compile
-# Press F5 in VS Code to launch Extension Development Host
 ```
 
-### Requirements
+Press **Fn+F5** in VS Code to open the Extension Development Host. On first activation, the extension automatically installs:
 
-- VS Code 1.85+
-- Python 3.9+ on your PATH (`python3` or configured via `halluciguard.pythonPath` setting)
-- pip (for first-run dependency install)
-
-On first activation the extension installs:
-```bash
-pip install -r scanner/requirements.txt
-# tree-sitter, httpx[http2], rapidfuzz, pybloom-live
+```
+tree-sitter  ·  tree-sitter-python  ·  tree-sitter-javascript
+httpx[http2]  ·  rapidfuzz  ·  pybloom-live
 ```
 
 ---
 
-## Usage
-
-| Action | How |
-|---|---|
-| Scan workspace | Activity Bar shield icon → click **Scan Workspace** |
-| Scan current file | Command Palette → `HalluciGuard: Scan Current File` |
-| View results | Activity Bar → HalluciGuard sidebar |
-| Rich panel | Command Palette → `HalluciGuard: Show Results Panel` |
-| Clear all results | Command Palette → `HalluciGuard: Clear Results` |
-
-### Settings
+## Settings
 
 | Setting | Default | Description |
 |---|---|---|
-| `halluciguard.riskThreshold` | `65` | Minimum score to flag a package |
-| `halluciguard.autoScanOnSave` | `false` | Auto-scan on file save |
+| `halluciguard.riskThreshold` | `65` | Minimum risk score to flag a package |
+| `halluciguard.autoScanOnSave` | `false` | Auto-scan on every file save |
 | `halluciguard.pythonPath` | `python3` | Path to Python interpreter |
 | `halluciguard.showPassedPackages` | `false` | Show safe packages in sidebar |
 
 ---
 
-## Codebase Structure
+## Project Structure
 
 ```text
-vscode-extension/
-  src/
-    extension.ts         # Activate/deactivate, commands, status bar
-    scanner_bridge.ts    # Spawns Python subprocess, parses NDJSON stream
-    results_provider.ts  # Sidebar TreeView (File → Package → Flags)
-    diagnostics.ts       # Inline squiggly lines + Quick Fix actions
-    webview_panel.ts     # Rich results WebView with risk gauge
-
-scanner/                 # Bundled Python scanner (also at vscode-extension/scanner/)
-  halluciguard_scanner.py  # CLI entry — streams NDJSON to stdout
-  agents/
-    sentinel.py          # Import extraction
-    validator.py         # Registry and hallucination checks
-    profiler.py          # Risk scoring
-  data/
-    bloom_filter.py      # Fast package existence checks
-    registry_client.py   # PyPI and npm validation
-    cve_client.py        # OSV.dev vulnerability checks
-    hallucination_db.py  # Known hallucination patterns
-
-src/                     # Standalone LSP + dashboard mode (optional)
-  core/
-    lsp_proxy.py         # Editor-facing LSP server (pygls)
-    pipeline.py          # Five-agent orchestration
-  agents/
-    remediator.py        # Gemini-assisted import rewrite
-    auditor.py           # SHA-256 hash-chained audit logging
-
-dashboard/               # Standalone Flask monitoring dashboard
-demo_workspace/          # Demo files with hallucinated imports for testing
-tests/                   # pytest test suite
+HalluciGuard/
+├── vscode-extension/              # TypeScript VS Code extension
+│   ├── src/
+│   │   ├── extension.ts           # Activation, commands, status bar
+│   │   ├── scanner_bridge.ts      # Subprocess spawn + NDJSON stream parser
+│   │   ├── diagnostics.ts         # DiagnosticCollection + Quick Fix provider
+│   │   ├── results_provider.ts    # Sidebar TreeDataProvider
+│   │   └── webview_panel.ts       # Rich results WebView with risk gauge
+│   ├── scanner/                   # Bundled Python scanner (shipped in .vsix)
+│   │   ├── halluciguard_scanner.py
+│   │   ├── agents/
+│   │   │   ├── sentinel.py        # Agent 1 — import extraction
+│   │   │   ├── validator.py       # Agent 2 — bloom + registry + hallucination DB
+│   │   │   ├── profiler.py        # Agent 3 — risk scoring
+│   │   │   └── auditor.py         # Agent 5 — hash-chained audit log
+│   │   ├── data/
+│   │   │   ├── bloom_filter.py
+│   │   │   ├── registry_client.py
+│   │   │   ├── hallucination_db.py
+│   │   │   └── cve_client.py
+│   │   └── utils/
+│   │       ├── ast_parser.py
+│   │       ├── levenshtein.py
+│   │       ├── module_to_package.py
+│   │       └── hash_chain.py      # SHA-256 chain utility
+│   └── data/
+│       ├── bloom/                 # 802k PyPI + npm package name lists
+│       └── hallucination_db/      # known_hallucinations.json
+│
+├── scanner/                       # Source copy of bundled scanner (dev reference)
+├── demo_workspace/                # Demo files with hallucinated imports
+├── dashboard/                     # Standalone Flask monitoring dashboard (optional)
+├── tests/                         # pytest test suite
+└── scripts/                       # Bloom filter + hallucination DB seed scripts
 ```
 
 ---
@@ -306,92 +322,112 @@ tests/                   # pytest test suite
 
 | Layer | Technology |
 | --- | --- |
-| VS Code Extension | TypeScript, VS Code Extension API |
-| Import Parsing | Python AST, Tree-sitter (Python + JS) |
+| VS Code Extension | TypeScript 5.3, VS Code Extension API 1.85 |
+| Import Parsing | Python `ast` module + Tree-sitter (Python + JS) |
 | Package Validation | PyPI JSON API, npm Registry API |
-| Fast Lookup | pybloom-live (802k packages, 0.1% FP rate) |
-| Similarity Detection | RapidFuzz, Levenshtein distance |
+| Fast Lookup | `pybloom-live` — 802k packages, 0.1% FP rate |
+| Similarity Detection | `rapidfuzz` Levenshtein distance |
 | Vulnerability Intelligence | OSV.dev API + SQLite cache (24h TTL) |
 | Scanner Protocol | NDJSON streaming over stdout |
-| Standalone LSP | pygls, LSP protocol |
+| Audit Integrity | SHA-256 + canonical JSON hash chaining |
+| Standalone LSP | `pygls`, Language Server Protocol |
 | Dashboard | Flask, Flask-SocketIO |
-| Audit Integrity | SHA-256, canonical JSON |
 
 ---
 
 ## Current Status
 
-| Feature | Status |
+| Component | Status |
 | --- | --- |
-| CLI scanner (Python) | ✅ Fully working |
+| CLI scanner | ✅ Fully working |
 | VS Code extension | ✅ Fully working |
-| Sentinel agent — import extraction | ✅ Fully working |
-| Validator agent — bloom filter + registry | ✅ Fully working |
-| Profiler agent — risk scoring | ✅ Fully working |
-| Remediator — Quick Fix code actions | ✅ Fully working |
-| Auditor — SHA-256 hash-chained audit log | ✅ Fully working — wired into scanner pipeline, `chain_valid: true` verified |
+| Agent 1 — Sentinel (import extraction) | ✅ Fully working |
+| Agent 2 — Validator (bloom + registry) | ✅ Fully working |
+| Agent 3 — Profiler (risk scoring) | ✅ Fully working |
+| Agent 4 — Remediator (Quick Fix) | ✅ Fully working |
+| Agent 5 — Auditor (hash-chain log) | ✅ Fully working · `chain_valid: true` verified |
 | Inline squiggly diagnostics | ✅ Fully working |
-| Sidebar TreeView results | ✅ Fully working |
+| Sidebar TreeView | ✅ Fully working |
 | Rich WebView panel with risk gauge | ✅ Fully working |
-| Demo workspace (5 hallucinations) | ✅ Verified — 5 flagged, 0 false positives |
-| Bloom filter (802k PyPI packages) | ✅ Loaded and indexed |
+| Demo workspace | ✅ 5 flagged · 6 passed · 0 false positives |
+| Bloom filter (802k packages) | ✅ Loaded and indexed |
 | Hallucination DB (77+ entries) | ✅ Active |
 | Remediation map (80+ curated fixes) | ✅ Active |
 | CVE lookup via OSV.dev | ✅ Working with SQLite cache |
-| npm dependency audit | ✅ 0 known vulnerabilities |
-| Dashboard (standalone mode) | ✅ Working — not production-hardened |
+| Standalone Flask dashboard | ✅ Working (not production-hardened) |
 
 ---
 
 ## Future Scope
 
-- Authentication and access control for dashboard APIs.
-- Safer AST-based remediation instead of broad text replacement.
-- Expanded ecosystem support for Go, Rust, Java, and Ruby.
-- CI/CD integration for pull request scanning.
-- Risk explanations with citations and confidence scores.
-- Organization-level hallucination intelligence database.
-- VS Code Marketplace publish.
-
----
-
-## Research Basis
-
-Risk weights are derived from:
-- Spracklen et al., *"We Have a Package for You!"* — USENIX Security 2025
-- Vu et al., *MalOSS* — ICSE 2020 (typosquatting distance thresholds)
-- Ohm et al., *"Backstabber's Knife Collection"* — 2020
-- Lanyado et al., *"Can LLMs be Trusted as Package Recommenders?"* — 2023
-- OSV.dev open vulnerability database
+- VS Code Marketplace publish
+- AST-aware import rewriting (preserve aliases and `from X import Y` style)
+- Expanded ecosystem support — Go, Rust, Java, Ruby
+- CI/CD integration for pull request scanning
+- Risk explanations with confidence scores and paper citations
+- Organization-level private hallucination intelligence feed
 
 ---
 
 ## Team
 
-Built at the **Google India Hackathon 2025** to explore a growing software supply-chain problem: AI systems can invent dependencies, and those invented names can become real attack surfaces. The goal is to make that risk visible, actionable, and easy to catch during development.
+Built at the **Google India Hackathon 2025** to tackle a growing threat: AI systems invent package names, and those invented names become real attack vectors the moment an attacker registers them. Our goal was to make that risk visible, actionable, and easy to fix — without adding friction to the developer workflow.
 
 <table>
   <tr>
-    <td align="center">
+    <td align="center" width="33%">
       <a href="https://github.com/aanya0-07">
-        <img src="https://github.com/aanya0-07.png" width="100" height="100" style="border-radius:50%" alt="Aanya Singh"/><br/>
+        <img src="https://github.com/aanya0-07.png" width="110" height="110" style="border-radius:50%" alt="Aanya Singh"/>
+        <br/><br/>
         <b>Aanya Singh</b>
-      </a><br/>
+      </a>
+      <br/>
       <a href="https://github.com/aanya0-07">@aanya0-07</a>
+      <br/><br/>
+      <sub>
+        Research & risk model design.<br/>
+        Validator agent (bloom filter +<br/>
+        registry + hallucination DB).<br/>
+        Profiler agent — risk scoring<br/>
+        weights and signal calibration.<br/>
+        Hallucination database curation.
+      </sub>
     </td>
-    <td align="center">
+    <td align="center" width="33%">
       <a href="https://github.com/shashankyamme-code">
-        <img src="https://github.com/shashankyamme-code.png" width="100" height="100" style="border-radius:50%" alt="Shashank Yamme"/><br/>
+        <img src="https://github.com/shashankyamme-code.png" width="110" height="110" style="border-radius:50%" alt="Shashank Yamme"/>
+        <br/><br/>
         <b>Shashank Yamme</b>
-      </a><br/>
+      </a>
+      <br/>
       <a href="https://github.com/shashankyamme-code">@shashankyamme-code</a>
+      <br/><br/>
+      <sub>
+        VS Code extension (TypeScript).<br/>
+        Sidebar TreeView, inline diagnostics,<br/>
+        Quick Fix code actions.<br/>
+        Rich WebView panel with<br/>
+        animated risk gauge.<br/>
+        Extension UX and settings system.
+      </sub>
     </td>
-    <td align="center">
+    <td align="center" width="33%">
       <a href="https://github.com/Quantum-Blade1">
-        <img src="https://github.com/Quantum-Blade1.png" width="100" height="100" style="border-radius:50%" alt="Krish Kumar Sharma"/><br/>
+        <img src="https://github.com/Quantum-Blade1.png" width="110" height="110" style="border-radius:50%" alt="Krish Kumar Sharma"/>
+        <br/><br/>
         <b>Krish Kumar Sharma</b>
-      </a><br/>
+      </a>
+      <br/>
       <a href="https://github.com/Quantum-Blade1">@Quantum-Blade1</a>
+      <br/><br/>
+      <sub>
+        Project lead & core architecture.<br/>
+        Sentinel agent (AST import parsing).<br/>
+        Remediator (curated fix map).<br/>
+        Auditor (SHA-256 hash chain).<br/>
+        Scanner CLI + NDJSON protocol.<br/>
+        Flask dashboard & LSP proxy.
+      </sub>
     </td>
   </tr>
 </table>
@@ -400,4 +436,4 @@ Built at the **Google India Hackathon 2025** to explore a growing software suppl
 
 ## License
 
-MIT © 2025 HalluciGuard Team
+MIT © 2025 HalluciGuard Team — Aanya Singh · Shashank Yamme · Krish Kumar Sharma
