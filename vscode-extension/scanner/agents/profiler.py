@@ -16,6 +16,7 @@ from scanner.agents.validator import ValidationResult
 from scanner.data.bloom_filter import package_bloom_filter
 from scanner.data.cve_client import CVEClient
 from scanner.utils.levenshtein import min_levenshtein_distance, typosquat_score
+from scanner.utils.pattern_detector import detect_hallucination_pattern, stdlib_proximity_score
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,24 @@ class ProfilerAgent:
                 if distance <= 2:
                     flags.append("TYPOSQUAT_DANGER")
             
+            # 1b. Pattern-based hallucination detection (w up to 25)
+            # Catches LLM naming patterns like `requests-helper`, `secure-fetch-utils`
+            # without needing them in the manual hallucination DB.
+            is_pattern, pattern_label, pattern_base = detect_hallucination_pattern(ref.package_name)
+            if is_pattern and not val.exists_on_registry:
+                pattern_score = 25.0
+                score += pattern_score
+                flags.append(f"HALLUCINATION_PATTERN:{pattern_label}")
+
+            # 1c. Stdlib proximity (w up to 30)
+            # Catches `import hash` (close to `hashlib`), `import jsons` (close to `json`)
+            # — stdlib modules don't need pip install; anything close to them is suspicious.
+            if ref.language == "python" and not val.exists_on_registry:
+                stdlib_score, stdlib_match = stdlib_proximity_score(ref.package_name)
+                if stdlib_score > 0:
+                    score += stdlib_score
+                    flags.append(f"STDLIB_PROXIMITY:{stdlib_match}")
+
             # 2. HallucinationDBHit (w=25)
             hallucination_w = RISK_WEIGHTS.get("hallucination_db", 25)
             if val.is_hallucinated:
