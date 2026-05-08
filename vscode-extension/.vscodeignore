@@ -1,0 +1,28 @@
+src/**
+tsconfig.json
+**/*.map
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# keep install size down
+node_modules/**
+node_modules/@types/**
+
+# include runtime assets explicitly
+!out/**
+!package.json
+!images/**
+!scanner/**
+!data/bloom/**
+!data/hallucination_db/**
+
+# exclude runtime-generated data dirs
+data/chroma_store/**
+data/cve_cache/**
+data/audit_log.jsonl
+
+# dev + ci files
+.vscodeignore
+LICENSE
+*.vsix

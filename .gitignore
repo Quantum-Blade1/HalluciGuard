@@ -16,11 +16,22 @@ env/
 # Environment
 .env
 
-# Data (generated)
+# Data (generated at runtime — never commit)
 data/bloom/*.json
 data/chroma_store/
 data/cve_cache/
 data/audit_log.jsonl
+
+# Scanner pycache (root scanner/ and vscode-extension/scanner/)
+scanner/__pycache__/
+scanner/**/__pycache__/
+vscode-extension/scanner/__pycache__/
+vscode-extension/scanner/**/__pycache__/
+
+# Generated data inside vscode-extension (runtime artifacts)
+vscode-extension/data/chroma_store/
+vscode-extension/data/cve_cache/
+vscode-extension/data/audit_log.jsonl
 
 # IDE
 .vscode/

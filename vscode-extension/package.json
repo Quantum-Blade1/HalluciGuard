@@ -1,28 +1,148 @@
 {
   "name": "halluciguard",
-  "displayName": "HalluciGuard",
-  "description": "AI Package Hallucination Detector — LSP client for HalluciGuard",
+  "displayName": "HalluciGuard — AI Code Supply Chain Defense",
+  "description": "Detects hallucinated package references in AI-generated code before they compromise your supply chain. Powered by research from Spracklen et al. (USENIX 2025).",
   "version": "0.1.0",
-  "publisher": "halluciguard",
+  "publisher": "quantum-blade1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Quantum-Blade1/HalluciGuard"
+  },
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#0d1117",
+    "theme": "dark"
+  },
+  "categories": [
+    "Linters",
+    "Security"
+  ],
+  "keywords": [
+    "security",
+    "ai",
+    "hallucination",
+    "package",
+    "supply chain",
+    "llm",
+    "copilot",
+    "import",
+    "typosquat"
+  ],
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Linters", "Programming Languages"],
-  "activationEvents": ["onLanguage:python", "onLanguage:javascript", "onLanguage:typescript"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "halluciguard",
+          "title": "HalluciGuard",
+          "icon": "$(shield)"
+        }
+      ]
+    },
+    "views": {
+      "halluciguard": [
+        {
+          "id": "halluciguardResults",
+          "name": "Scan Results",
+          "icon": "$(shield)",
+          "contextualTitle": "HalluciGuard"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "halluciguard.scanWorkspace",
+        "title": "Scan Workspace",
+        "category": "HalluciGuard",
+        "icon": "$(search)"
+      },
+      {
+        "command": "halluciguard.scanCurrentFile",
+        "title": "Scan Current File",
+        "category": "HalluciGuard",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "halluciguard.showPanel",
+        "title": "Show Results Panel",
+        "category": "HalluciGuard",
+        "icon": "$(browser)"
+      },
+      {
+        "command": "halluciguard.clearResults",
+        "title": "Clear Results",
+        "category": "HalluciGuard",
+        "icon": "$(clear-all)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "when": "resourceLangId == python || resourceLangId == javascript",
+          "command": "halluciguard.scanCurrentFile",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "when": "resourceLangId == python || resourceLangId == javascript",
+          "command": "halluciguard.scanCurrentFile",
+          "group": "halluciguard@1"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "halluciguard.scanWorkspace",
+          "when": "view == halluciguardResults",
+          "group": "navigation@1"
+        },
+        {
+          "command": "halluciguard.showPanel",
+          "when": "view == halluciguardResults",
+          "group": "navigation@2"
+        },
+        {
+          "command": "halluciguard.clearResults",
+          "when": "view == halluciguardResults",
+          "group": "navigation@3"
+        }
+      ]
+    },
     "configuration": {
       "title": "HalluciGuard",
       "properties": {
-        "halluciguard.serverPort": {
+        "halluciguard.riskThreshold": {
           "type": "number",
-          "default": 7777,
-          "description": "Port of the HalluciGuard LSP server"
+          "default": 65,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Minimum risk score (0–100) to flag a package as suspicious. Packages scoring below this threshold are considered safe.",
+          "order": 1
         },
-        "halluciguard.serverHost": {
+        "halluciguard.autoScanOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically scan the current file for hallucinated imports whenever it is saved.",
+          "order": 2
+        },
+        "halluciguard.pythonPath": {
           "type": "string",
-          "default": "localhost",
-          "description": "Host of the HalluciGuard LSP server"
+          "default": "python3",
+          "description": "Path to the Python interpreter used to run the bundled scanner. Change this if python3 is not on your PATH.",
+          "order": 3
+        },
+        "halluciguard.showPassedPackages": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show packages that passed validation (risk score below threshold) in the sidebar results.",
+          "order": 4
         }
       }
     }
@@ -30,13 +150,14 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
-  },
-  "dependencies": {
-    "vscode-languageclient": "^9.0.1"
+    "watch": "tsc -watch -p ./",
+    "lint": "tsc --noEmit",
+    "package": "vsce package"
   },
   "devDependencies": {
+    "@types/node": "^20.19.40",
     "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.9.1",
     "typescript": "^5.3.0"
   }
 }

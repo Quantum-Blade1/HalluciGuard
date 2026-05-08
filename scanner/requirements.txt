@@ -1,0 +1,16 @@
+# HalluciGuard Scanner — Pinned Dependencies
+# Bundled inside the VS Code extension
+
+# AST Parsing
+tree-sitter==0.23.2
+tree-sitter-python==0.23.6
+tree-sitter-javascript==0.23.1
+
+# Async HTTP for registry lookups
+httpx[http2]==0.28.1
+
+# String Similarity (typosquat detection)
+rapidfuzz==3.10.1
+
+# Bloom Filter (package existence)
+pybloom-live==4.0.0
