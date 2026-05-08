@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HalluciGuard — AI Package Hallucination Detector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── Reset ─────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Design tokens ─────────────────────────────────────────────────────── */
+:root {
+  --bg:           #060912;
+  --bg-2:         #0c1120;
+  --bg-3:         #111827;
+  --glass:        rgba(255,255,255,0.03);
+  --glass-hover:  rgba(255,255,255,0.06);
+  --border:       rgba(255,255,255,0.08);
+  --border-bright:rgba(255,255,255,0.14);
+
+  --indigo:       #6366f1;
+  --indigo-dim:   rgba(99,102,241,0.15);
+  --violet:       #8b5cf6;
+  --cyan:         #06b6d4;
+  --cyan-dim:     rgba(6,182,212,0.12);
+
+  --emerald:      #10b981;
+  --emerald-dim:  rgba(16,185,129,0.12);
+  --red:          #ef4444;
+  --red-dim:      rgba(239,68,68,0.12);
+  --amber:        #f59e0b;
+  --amber-dim:    rgba(245,158,11,0.12);
+
+  --text:         #f1f5f9;
+  --text-2:       #94a3b8;
+  --text-3:       #475569;
+
+  --r-sm:   6px;
+  --r-md:   10px;
+  --r-lg:   14px;
+  --r-xl:   18px;
+  --mono: 'JetBrains Mono', monospace;
+
+  --grad: linear-gradient(135deg, var(--indigo), var(--violet));
+}
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: Inter, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+header {
+  flex-shrink: 0;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  z-index: 10;
+}
+
+header::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--indigo), var(--violet), transparent);
+  opacity: 0.5;
+}
+
+.brand { display: flex; align-items: center; gap: 12px; }
+
+.brand-logo {
+  width: 34px; height: 34px;
+  background: var(--grad);
+  border-radius: var(--r-md);
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  box-shadow: 0 4px 12px rgba(99,102,241,0.4);
+  flex-shrink: 0;
+}
+
+.brand-text { display: flex; flex-direction: column; gap: 1px; }
+.brand-name {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  background: linear-gradient(90deg, #e0e7ff, #c4b5fd);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.brand-tagline {
+  font-size: 10px;
+  color: var(--text-3);
+  font-weight: 400;
+  letter-spacing: 0.3px;
+}
+
+/* Header stats */
+.hdr-stats { display: flex; align-items: center; gap: 8px; }
+
+.hdr-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 14px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  min-width: 60px;
+  transition: background 0.2s;
+}
+.hdr-stat:hover { background: var(--glass-hover); }
+
+.hdr-stat-val {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.hdr-stat-label {
+  font-size: 9px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hdr-divider { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+
+/* Live badge */
+.live-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: 1px solid;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+.live-badge.on  { color: var(--emerald); border-color: rgba(16,185,129,0.3); background: var(--emerald-dim); }
+.live-badge.off { color: var(--text-3);  border-color: var(--border); background: transparent; }
+.pulse-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.live-badge.on .pulse-dot {
+  animation: pulse 2s ease-in-out infinite;
+  box-shadow: 0 0 0 0 currentColor;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.8); }
+}
+
+/* ── Main workspace ────────────────────────────────────────────────────── */
+.workspace {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Panel ─────────────────────────────────────────────────────────────── */
+.panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+}
+.panel:last-child { border-right: none; }
+
+/* ── Code editor panel ─────────────────────────────────────────────────── */
+.editor-panel { background: var(--bg); }
+
+.editor-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.toolbar-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-right: 4px;
+}
+
+.lang-select {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  font-size: 12px;
+  font-family: var(--mono);
+  padding: 5px 10px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.lang-select:hover, .lang-select:focus { border-color: var(--indigo); color: var(--text); }
+
+.spacer { flex: 1; }
+
+.scan-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 20px;
+  background: var(--grad);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  overflow: hidden;
+  transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+  box-shadow: 0 4px 14px rgba(99,102,241,0.3);
+}
+.scan-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  box-shadow: 0 6px 20px rgba(99,102,241,0.45);
+  transform: translateY(-1px);
+}
+.scan-btn:active:not(:disabled) { transform: scale(0.97); }
+.scan-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+/* Ripple */
+.scan-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.12);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.scan-btn:hover:not(:disabled)::after { opacity: 1; }
+
+.btn-spinner {
+  width: 13px; height: 13px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: none;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.scan-time {
+  font-size: 11px;
+  color: var(--text-3);
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+/* ── Line-numbered editor ──────────────────────────────────────────────── */
+.editor-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  background: #080d18;
+}
+
+.line-nums {
+  flex-shrink: 0;
+  width: 44px;
+  padding: 14px 0;
+  background: rgba(0,0,0,0.2);
+  border-right: 1px solid var(--border);
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-3);
+  line-height: 1.7;
+  user-select: none;
+  overflow: hidden;
+}
+.line-nums span { display: block; padding: 0 8px; }
+
+textarea#codeInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #e2e8f0;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+  padding: 14px 16px;
+  resize: none;
+  outline: none;
+  tab-size: 4;
+  overflow: auto;
+  white-space: pre;
+  caret-color: var(--indigo);
+}
+
+/* ── Results panel (scrollable) ────────────────────────────────────────── */
+.results-panel {
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Tabs */
+.tabs {
+  flex-shrink: 0;
+  display: flex;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  gap: 2px;
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.2s;
+  white-space: nowrap;
+}
+.tab:hover { color: var(--text-2); }
+.tab.active {
+  color: var(--text);
+  border-bottom-color: var(--indigo);
+}
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--indigo-dim);
+  color: var(--indigo);
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.tab.active .tab-badge { background: var(--indigo); color: #fff; }
+
+.tab-panel { display: none; flex: 1; overflow-y: auto; flex-direction: column; }
+.tab-panel.active { display: flex; }
+
+/* ── Scan summary bar ──────────────────────────────────────────────────── */
+.scan-summary {
+  flex-shrink: 0;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.scan-summary.visible { display: flex; }
+
+.summary-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid;
+}
+.chip-danger { color: var(--red);     border-color: rgba(239,68,68,0.3);   background: var(--red-dim); }
+.chip-warn   { color: var(--amber);   border-color: rgba(245,158,11,0.3); background: var(--amber-dim); }
+.chip-ok     { color: var(--emerald); border-color: rgba(16,185,129,0.3); background: var(--emerald-dim); }
+.chip-info   { color: var(--cyan);    border-color: rgba(6,182,212,0.25); background: var(--cyan-dim); }
+.chip-ms { color: var(--text-3); border-color: var(--border); background: transparent; margin-left: auto; font-family: var(--mono); }
+
+/* ── Package risk cards ────────────────────────────────────────────────── */
+.cards-body {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.risk-card {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  animation: slideUp 0.25s ease both;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+.risk-card:hover {
+  background: var(--glass-hover);
+  border-color: var(--border-bright);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+.risk-card.danger { border-left: 3px solid var(--red);     box-shadow: 0 0 0 0 var(--red); }
+.risk-card.warn   { border-left: 3px solid var(--amber);   }
+.risk-card.safe   { border-left: 3px solid var(--emerald); }
+.risk-card.danger:hover { box-shadow: 0 8px 24px rgba(239,68,68,0.15); }
+.risk-card.warn:hover   { box-shadow: 0 8px 24px rgba(245,158,11,0.12); }
+.risk-card.safe:hover   { box-shadow: 0 8px 24px rgba(16,185,129,0.1); }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px 10px;
+}
+
+/* SVG score ring */
+.score-ring-wrap {
+  flex-shrink: 0;
+  position: relative;
+  width: 52px; height: 52px;
+}
+.score-ring-wrap svg { transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 4; }
+.ring-fill { fill: none; stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset 0.8s cubic-bezier(.4,0,.2,1); }
+.ring-text {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.card-info { flex: 1; min-width: 0; }
+.card-pkg {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+.card-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.status-danger { background: var(--red-dim);     color: var(--red);     border: 1px solid rgba(239,68,68,0.25); }
+.status-warn   { background: var(--amber-dim);   color: var(--amber);   border: 1px solid rgba(245,158,11,0.2); }
+.status-safe   { background: var(--emerald-dim); color: var(--emerald); border: 1px solid rgba(16,185,129,0.2); }
+
+.card-body { padding: 0 16px 14px; display: flex; flex-direction: column; gap: 10px; }
+
+/* Flag badges */
+.flags { display: flex; flex-wrap: wrap; gap: 5px; }
+.flag {
+  font-size: 10px;
+  font-family: var(--mono);
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-weight: 500;
+  border: 1px solid;
+  letter-spacing: 0.2px;
+}
+.flag-critical { color: var(--red);     border-color: rgba(239,68,68,0.3);   background: var(--red-dim); }
+.flag-high     { color: var(--amber);   border-color: rgba(245,158,11,0.25); background: var(--amber-dim); }
+.flag-info     { color: var(--cyan);    border-color: rgba(6,182,212,0.25);  background: var(--cyan-dim); }
+
+/* Risk factor bars */
+.risk-bars { display: flex; flex-direction: column; gap: 5px; }
+.risk-bar-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 28px;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+.rbar-label { color: var(--text-2); white-space: nowrap; }
+.rbar-track {
+  height: 4px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.rbar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.8s cubic-bezier(.4,0,.2,1);
+}
+.rbar-val { color: var(--text-3); font-family: var(--mono); font-size: 10px; text-align: right; }
+
+/* Fix suggestion */
+.fix-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(16,185,129,0.07);
+  border: 1px solid rgba(16,185,129,0.18);
+  border-radius: var(--r-md);
+}
+.fix-icon { font-size: 18px; flex-shrink: 0; }
+.fix-text { flex: 1; min-width: 0; }
+.fix-title { font-size: 11px; color: var(--text-2); margin-bottom: 2px; }
+.fix-pkg {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--emerald);
+}
+.fix-meta { font-size: 10px; color: var(--text-3); margin-top: 1px; }
+.fix-confidence {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--emerald);
+  flex-shrink: 0;
+}
+
+/* Nearest match row */
+.nearest-row {
+  font-size: 11px;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+.nearest-row code { font-family: var(--mono); color: var(--text); font-weight: 600; }
+.dist-badge {
+  margin-left: auto;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: var(--amber-dim);
+  color: var(--amber);
+  border: 1px solid rgba(245,158,11,0.2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── Patched code ──────────────────────────────────────────────────────── */
+.patch-section {
+  margin: 0 16px 16px;
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: rgba(16,185,129,0.04);
+}
+.patch-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(16,185,129,0.06);
+  border-bottom: 1px solid rgba(16,185,129,0.15);
+}
+.patch-title { font-size: 12px; font-weight: 600; color: var(--emerald); flex: 1; }
+.copy-btn {
+  font-size: 11px;
+  padding: 4px 12px;
+  border: 1px solid rgba(16,185,129,0.3);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--emerald);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-weight: 500;
+}
+.copy-btn:hover { background: rgba(16,185,129,0.1); }
+pre.patch-code {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #e2e8f0;
+  padding: 14px;
+  overflow-x: auto;
+  white-space: pre;
+  line-height: 1.7;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* ── Annotations in a mini list ────────────────────────────────────────── */
+.ann-list { display: flex; flex-direction: column; gap: 6px; padding: 0 16px 16px; }
+
+.ann-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid;
+  font-size: 12px;
+  animation: slideUp 0.2s ease;
+}
+.ann-item.error {
+  background: var(--red-dim);
+  border-color: rgba(239,68,68,0.2);
+}
+.ann-item.warning {
+  background: var(--amber-dim);
+  border-color: rgba(245,158,11,0.18);
+}
+.ann-item.pass {
+  background: var(--emerald-dim);
+  border-color: rgba(16,185,129,0.18);
+}
+.ann-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+.ann-msg { color: var(--text); line-height: 1.4; margin-bottom: 3px; }
+.ann-meta { font-size: 10px; color: var(--text-3); font-family: var(--mono); }
+.ann-suggest { color: var(--emerald); font-family: var(--mono); font-size: 11px; margin-top: 2px; }
+
+/* ── Audit trail ───────────────────────────────────────────────────────── */
+.audit-body { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 0; }
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 0 12px;
+  padding-bottom: 14px;
+  animation: slideUp 0.25s ease;
+}
+.timeline-item:last-child { padding-bottom: 0; }
+
+.tl-connector { display: flex; flex-direction: column; align-items: center; }
+.tl-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  border: 2px solid;
+  flex-shrink: 0;
+  margin-top: 3px;
+  position: relative;
+}
+.tl-dot::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.5;
+}
+.tl-dot.blocked    { border-color: var(--red);     color: var(--red); }
+.tl-dot.remediated { border-color: var(--cyan);    color: var(--cyan); }
+.tl-dot.passed     { border-color: var(--emerald); color: var(--emerald); }
+
+.tl-line {
+  flex: 1;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--border), transparent);
+  margin: 4px 0;
+  min-height: 16px;
+}
+.timeline-item:last-child .tl-line { display: none; }
+
+.tl-content { padding-bottom: 2px; }
+
+.tl-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 5px;
+  flex-wrap: wrap;
+}
+
+.action-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border: 1px solid;
+}
+.pill-blocked    { color: var(--red);     border-color: rgba(239,68,68,0.3);   background: var(--red-dim); }
+.pill-remediated { color: var(--cyan);    border-color: rgba(6,182,212,0.25);  background: var(--cyan-dim); }
+.pill-passed     { color: var(--emerald); border-color: rgba(16,185,129,0.25); background: var(--emerald-dim); }
+
+.tl-pkg {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+.tl-time { font-size: 10px; color: var(--text-3); margin-left: auto; }
+
+.hash-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-3);
+}
+.hash-chip {
+  padding: 2px 7px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  letter-spacing: 0.3px;
+}
+.hash-arrow { opacity: 0.4; }
+.hash-score { margin-left: 8px; color: var(--text-3); }
+
+/* ── Empty states ──────────────────────────────────────────────────────── */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  gap: 12px;
+}
+.empty-icon {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+}
+.empty-title { font-size: 14px; font-weight: 600; color: var(--text-2); }
+.empty-sub { font-size: 12px; color: var(--text-3); max-width: 200px; line-height: 1.5; }
+
+/* Keyboard hint */
+.kbd-hint {
+  font-size: 11px;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+kbd {
+  padding: 2px 6px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-2);
+}
+
+/* ── Error banner ──────────────────────────────────────────────────────── */
+.error-banner {
+  margin: 16px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--red-dim);
+  border: 1px solid rgba(239,68,68,0.25);
+  color: var(--red);
+  font-size: 12px;
+}
+
+/* ── Stats tab ─────────────────────────────────────────────────────────── */
+.stats-body { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+.stat-card {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: all 0.2s;
+}
+.stat-card:hover { background: var(--glass-hover); border-color: var(--border-bright); }
+
+.stat-card-icon {
+  width: 40px; height: 40px;
+  border-radius: var(--r-md);
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.icon-blue   { background: var(--indigo-dim); }
+.icon-red    { background: var(--red-dim); }
+.icon-green  { background: var(--emerald-dim); }
+.icon-amber  { background: var(--amber-dim); }
+
+.stat-card-info { flex: 1; }
+.stat-card-val {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.stat-card-label { font-size: 12px; color: var(--text-2); }
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .workspace { grid-template-columns: 1fr; overflow-y: auto; }
+  .panel { min-height: 50vh; }
+  .hdr-stats .hdr-stat:nth-child(n+3) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ HEADER ═══════════════════════════════ -->
+<header>
+  <div class="brand">
+    <div class="brand-logo">🛡️</div>
+    <div class="brand-text">
+      <div class="brand-name">HalluciGuard</div>
+      <div class="brand-tagline">AI Package Hallucination Detector</div>
+    </div>
+  </div>
+
+  <div class="hdr-stats">
+    <div class="hdr-stat">
+      <span class="hdr-stat-val" id="h-scans">0</span>
+      <span class="hdr-stat-label">Scans</span>
+    </div>
+    <div class="hdr-divider"></div>
+    <div class="hdr-stat">
+      <span class="hdr-stat-val" id="h-flagged" style="color:var(--red)">0</span>
+      <span class="hdr-stat-label">Flagged</span>
+    </div>
+    <div class="hdr-divider"></div>
+    <div class="hdr-stat">
+      <span class="hdr-stat-val" id="h-fixed" style="color:var(--emerald)">0</span>
+      <span class="hdr-stat-label">Fixed</span>
+    </div>
+    <div class="hdr-divider"></div>
+
+    <div class="live-badge off" id="live-badge">
+      <div class="pulse-dot"></div>
+      <span id="live-label">Offline</span>
+    </div>
+  </div>
+</header>
+
+
+<!-- ═══════════════════════════ WORKSPACE ════════════════════════════════ -->
+<div class="workspace">
+
+  <!-- ══════════════════════ LEFT: CODE EDITOR ══════════════════════════ -->
+  <div class="panel editor-panel">
+
+    <div class="editor-toolbar">
+      <span class="toolbar-label">Code</span>
+      <select id="langSelect" class="lang-select">
+        <option value="python">🐍 Python</option>
+        <option value="javascript">🟨 JavaScript</option>
+      </select>
+      <div class="spacer"></div>
+      <span class="scan-time" id="scanTime"></span>
+      <button class="scan-btn" id="scanBtn" onclick="runScan()">
+        <div class="btn-spinner" id="scanSpinner"></div>
+        <span id="scanBtnLabel">▶ Scan Code</span>
+      </button>
+    </div>
+
+    <div class="editor-body">
+      <div class="line-nums" id="lineNums"><span>1</span></div>
+      <textarea id="codeInput" spellcheck="false" oninput="syncLineNums()" onscroll="syncScroll()" placeholder="Paste your code here and click Scan Code…"></textarea>
+    </div>
+
+  </div><!-- /left panel -->
+
+
+  <!-- ══════════════════════ RIGHT: RESULTS ════════════════════════════ -->
+  <div class="panel results-panel">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="analysis" onclick="switchTab('analysis')">
+        Analysis
+        <span class="tab-badge" id="badge-analysis">—</span>
+      </button>
+      <button class="tab" data-tab="fixed" onclick="switchTab('fixed')" id="tab-btn-fixed" style="display:none">
+        Fixed Code
+        <span class="tab-badge" id="badge-fixed" style="background:var(--emerald);color:#fff">✓</span>
+      </button>
+      <button class="tab" data-tab="annotations" onclick="switchTab('annotations')">
+        Diagnostics
+        <span class="tab-badge" id="badge-annotations">—</span>
+      </button>
+      <button class="tab" data-tab="audit" onclick="switchTab('audit')">
+        Audit Trail
+        <span class="tab-badge" id="badge-audit">0</span>
+      </button>
+      <button class="tab" data-tab="stats" onclick="switchTab('stats')">
+        Stats
+      </button>
+    </div>
+
+    <!-- Scan summary bar -->
+    <div class="scan-summary" id="scanSummary">
+      <!-- filled by JS -->
+    </div>
+
+    <!-- ── ANALYSIS TAB ── -->
+    <div class="tab-panel active" id="tab-analysis">
+      <div class="cards-body" id="cardsBody">
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-title">Nothing scanned yet</div>
+          <div class="empty-sub">Paste your code on the left and click Scan Code</div>
+          <div class="kbd-hint"><kbd>⌘</kbd>+<kbd>↩</kbd> to scan</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FIXED CODE TAB ── -->
+    <div class="tab-panel" id="tab-fixed">
+      <div style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+
+        <!-- Header bar -->
+        <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:rgba(16,185,129,0.06);border-bottom:1px solid rgba(16,185,129,0.15);flex-shrink:0;">
+          <span style="font-size:18px">✅</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:700;color:var(--emerald)">Fixed Code</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:1px" id="fixedSubtitle">Hallucinated packages replaced with safe alternatives</div>
+          </div>
+          <button class="copy-btn" id="copyBtn" onclick="copyPatched()">Copy</button>
+          <button class="copy-btn" onclick="applyToEditor()" style="border-color:rgba(99,102,241,0.4);color:var(--indigo)">Apply to Editor</button>
+        </div>
+
+        <!-- Diff view -->
+        <div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+
+          <!-- Changes summary chips -->
+          <div id="diffChips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+
+          <!-- Side-by-side diff -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:1;">
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;gap:5px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block"></span>
+                Original
+              </div>
+              <pre id="origCode" style="font-family:var(--mono);font-size:12px;line-height:1.7;background:#080d18;border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;overflow:auto;flex:1;color:#e2e8f0;white-space:pre;"></pre>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;gap:5px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:var(--emerald);display:inline-block"></span>
+                Fixed
+              </div>
+              <pre id="patchedCode" style="font-family:var(--mono);font-size:12px;line-height:1.7;background:#080d18;border:1px solid rgba(16,185,129,0.2);border-radius:var(--r-md);padding:12px 14px;overflow:auto;flex:1;color:#e2e8f0;white-space:pre;"></pre>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DIAGNOSTICS TAB ── -->
+    <div class="tab-panel" id="tab-annotations">
+      <div class="ann-list" id="annList" style="padding-top:16px">
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <div class="empty-title">No diagnostics</div>
+          <div class="empty-sub">Scan code to see line-level annotations</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AUDIT TRAIL TAB ── -->
+    <div class="tab-panel" id="tab-audit">
+      <div class="audit-body" id="auditBody">
+        <div class="empty-state">
+          <div class="empty-icon">🔐</div>
+          <div class="empty-title">No audit entries</div>
+          <div class="empty-sub">Completed scans appear here with SHA-256 chain</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STATS TAB ── -->
+    <div class="tab-panel" id="tab-stats">
+      <div class="stats-body">
+        <div class="stat-card">
+          <div class="stat-card-icon icon-blue">🔍</div>
+          <div class="stat-card-info">
+            <div class="stat-card-val" id="stat-scans">0</div>
+            <div class="stat-card-label">Total scans run</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon icon-red">⚠️</div>
+          <div class="stat-card-info">
+            <div class="stat-card-val" id="stat-flagged">0</div>
+            <div class="stat-card-label">Packages flagged as high-risk</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon icon-green">🔧</div>
+          <div class="stat-card-info">
+            <div class="stat-card-val" id="stat-fixed">0</div>
+            <div class="stat-card-label">Remediations applied</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon icon-amber">📦</div>
+          <div class="stat-card-info">
+            <div class="stat-card-val" id="stat-imports">0</div>
+            <div class="stat-card-label">Total imports analyzed</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon icon-green">✅</div>
+          <div class="stat-card-info">
+            <div class="stat-card-val" id="stat-safe">0</div>
+            <div class="stat-card-label">Safe packages passed</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon icon-red">📊</div>
+          <div class="stat-card-info">
+            <div class="stat-card-val" id="stat-avg">—</div>
+            <div class="stat-card-label">Avg risk score of flagged packages</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon icon-amber">🎯</div>
+          <div class="stat-card-info">
+            <div class="stat-card-val" id="stat-rate">—</div>
+            <div class="stat-card-label">Flag rate (flagged / total imports)</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon icon-blue">⏱</div>
+          <div class="stat-card-info">
+            <div class="stat-card-val" id="stat-last-scan" style="font-size:14px">—</div>
+            <div class="stat-card-label">Last scan summary</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /right panel -->
+</div><!-- /workspace -->
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════════
+   HalluciGuard Dashboard JS
+══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Socket.IO ──────────────────────────────────────────────────────────── */
+const socket = io({ transports: ['websocket', 'polling'] });
+socket.on('connect', () => setBadge(true));
+socket.on('disconnect', () => setBadge(false));
+socket.on('stats_update', syncServerStats);
+
+function setBadge(on) {
+  const b = document.getElementById('live-badge');
+  b.className = 'live-badge ' + (on ? 'on' : 'off');
+  document.getElementById('live-label').textContent = on ? 'Live' : 'Offline';
+}
+
+/* ── Client-side session stats (source of truth for UI) ─────────────────── */
+const _session = {
+  scans: 0,
+  flagged: 0,
+  fixed: 0,
+  imports: 0,
+  safe: 0,
+  riskScores: [],   // all high-risk scores this session
+  lastScanMs: 0,
+  lastScanPackages: 0,
+  lastScanFlagged: 0,
+};
+
+function _addScanToSession(data, ms) {
+  const profiles   = data.profiles   || [];
+  const rems       = data.remediations || [];
+  const highRisk   = profiles.filter(p => p.is_high_risk);
+  const safeCount  = profiles.filter(p => !p.is_high_risk).length;
+
+  _session.scans++;
+  _session.flagged   += highRisk.length;
+  _session.fixed     += rems.length;
+  _session.imports   += profiles.length;
+  _session.safe      += safeCount;
+  _session.lastScanMs        = ms;
+  _session.lastScanPackages  = profiles.length;
+  _session.lastScanFlagged   = highRisk.length;
+  highRisk.forEach(p => _session.riskScores.push(p.risk_score));
+  _session.riskScores = _session.riskScores.slice(-100);
+
+  _renderStats();
+}
+
+function _renderStats() {
+  const s = _session;
+  const avg = s.riskScores.length
+    ? (s.riskScores.reduce((a,b) => a+b, 0) / s.riskScores.length).toFixed(1)
+    : '—';
+  const flagRate = s.imports > 0
+    ? ((s.flagged / s.imports) * 100).toFixed(0) + '%'
+    : '—';
+
+  // Header pills
+  document.getElementById('h-scans').textContent   = s.scans;
+  document.getElementById('h-flagged').textContent = s.flagged;
+  document.getElementById('h-fixed').textContent   = s.fixed;
+
+  // Stats tab cards
+  document.getElementById('stat-scans').textContent   = s.scans;
+  document.getElementById('stat-flagged').textContent = s.flagged;
+  document.getElementById('stat-fixed').textContent   = s.fixed;
+  document.getElementById('stat-imports').textContent = s.imports;
+  document.getElementById('stat-safe').textContent    = s.safe;
+  document.getElementById('stat-avg').textContent     = avg;
+  document.getElementById('stat-rate').textContent    = flagRate;
+
+  // Last scan row
+  if (s.scans > 0) {
+    document.getElementById('stat-last-scan').textContent =
+      `${s.lastScanPackages} packages · ${s.lastScanFlagged} flagged · ${(s.lastScanMs/1000).toFixed(2)}s`;
+  }
+}
+
+/* Merge server stats only for values we can't compute client-side */
+function syncServerStats(s) {
+  // Only update if server knows more (e.g. LSP-triggered scans)
+  if ((s.total_scans ?? 0) > _session.scans) {
+    _session.scans   = s.total_scans;
+    _session.flagged = s.packages_flagged;
+    _session.fixed   = s.remediations_applied;
+    _session.imports = s.total_imports;
+    _renderStats();
+  }
+}
+
+/* Fetch latest stats from server on load */
+async function fetchStats() {
+  try {
+    const r = await fetch('/api/stats');
+    const s = await r.json();
+    syncServerStats(s);
+  } catch {}
+}
+
+
+/* ── Line number sync ───────────────────────────────────────────────────── */
+function syncLineNums() {
+  const ta    = document.getElementById('codeInput');
+  const nums  = document.getElementById('lineNums');
+  const lines = ta.value.split('\n').length;
+  let html = '';
+  for (let i = 1; i <= lines; i++) html += `<span>${i}</span>`;
+  nums.innerHTML = html;
+}
+function syncScroll() {
+  const ta   = document.getElementById('codeInput');
+  const nums = document.getElementById('lineNums');
+  nums.scrollTop = ta.scrollTop;
+}
+syncLineNums();
+
+
+/* ── Tab switching ──────────────────────────────────────────────────────── */
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${name}`));
+}
+
+
+/* ── Score ring SVG builder ─────────────────────────────────────────────── */
+function buildRing(score) {
+  const R = 22, C = 26;
+  const circ  = 2 * Math.PI * R;
+  const pct   = Math.min(score, 100) / 100;
+  const offset = circ * (1 - pct);
+  const color = score >= 60 ? 'var(--red)' : score >= 40 ? 'var(--amber)' : 'var(--emerald)';
+  const textColor = color;
+  return `
+    <div class="score-ring-wrap">
+      <svg width="52" height="52" viewBox="0 0 52 52">
+        <circle class="ring-bg" cx="${C}" cy="${C}" r="${R}"/>
+        <circle class="ring-fill" cx="${C}" cy="${C}" r="${R}"
+          stroke="${color}"
+          stroke-dasharray="${circ}"
+          stroke-dashoffset="${offset}"/>
+      </svg>
+      <div class="ring-text" style="color:${textColor}">${Math.round(score)}</div>
+    </div>`;
+}
+
+
+/* ── Helpers ────────────────────────────────────────────────────────────── */
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function cardClass(score, isHigh) {
+  if (!isHigh) return 'safe';
+  return score >= 60 ? 'danger' : 'warn';
+}
+
+function statusHtml(score, isHigh) {
+  if (!isHigh) return `<span class="card-status status-safe">✓ Safe</span>`;
+  return score >= 60
+    ? `<span class="card-status status-danger">⛔ High Risk</span>`
+    : `<span class="card-status status-warn">⚠ Medium Risk</span>`;
+}
+
+const FLAG_META = {
+  HALLUCINATION_DB_HIT: { label: 'hallucinated', cls: 'flag-critical', tip: 'Known AI-hallucinated package' },
+  NON_EXISTENT:         { label: 'not on registry', cls: 'flag-critical', tip: 'Package not found anywhere' },
+  TYPOSQUAT_DANGER:     { label: 'typosquat', cls: 'flag-high', tip: 'Name similar to a popular package' },
+  VULNERABLE:           { label: 'CVE found', cls: 'flag-high', tip: 'Known vulnerabilities (OSV.dev)' },
+  NEW_PACKAGE:          { label: 'new package', cls: 'flag-high', tip: 'Uploaded < 90 days ago' },
+  CROSS_ECOSYSTEM:      { label: 'wrong ecosystem', cls: 'flag-high', tip: 'Package belongs to a different language' },
+  LOW_POPULARITY:       { label: 'low downloads', cls: 'flag-info', tip: 'Very few downloads' },
+};
+
+function flagsHtml(flags) {
+  if (!flags || !flags.length) return '';
+  return '<div class="flags">' + flags.map(f => {
+    const m = FLAG_META[f] || { label: f.toLowerCase().replace(/_/g,' '), cls: 'flag-info' };
+    return `<span class="flag ${m.cls}" title="${m.tip || ''}">${m.label}</span>`;
+  }).join('') + '</div>';
+}
+
+function riskBarsHtml(flags, score) {
+  const components = [
+    { label: 'Hallucination DB', key: 'HALLUCINATION_DB_HIT', max: 25, color: 'var(--red)' },
+    { label: 'Not on Registry',  key: 'NON_EXISTENT',         max: 40, color: 'var(--red)' },
+    { label: 'Typosquatting',    key: 'TYPOSQUAT_DANGER',     max: 30, color: 'var(--amber)' },
+    { label: 'CVE / Vuln',       key: 'VULNERABLE',           max: 10, color: 'var(--amber)' },
+    { label: 'New Package',      key: 'NEW_PACKAGE',          max: 15, color: 'var(--amber)' },
+    { label: 'Low Popularity',   key: 'LOW_POPULARITY',       max: 15, color: 'var(--cyan)' },
+    { label: 'Cross Ecosystem',  key: 'CROSS_ECOSYSTEM',      max: 5,  color: 'var(--indigo)' },
+  ];
+
+  const active = components.filter(c => (flags || []).includes(c.key));
+  if (!active.length) return '';
+
+  const rows = active.map(c => {
+    const pct = (c.max / 100) * 100;
+    return `<div class="risk-bar-row">
+      <span class="rbar-label">${c.label}</span>
+      <div class="rbar-track">
+        <div class="rbar-fill" style="width:${pct}%;background:${c.color}"></div>
+      </div>
+      <span class="rbar-val">+${c.max}</span>
+    </div>`;
+  }).join('');
+
+  return `<div class="risk-bars">${rows}</div>`;
+}
+
+function truncHash(h) {
+  if (!h) return '—';
+  return h.slice(0, 8) + '…' + h.slice(-6);
+}
+
+function fmtTime(ts) {
+  if (!ts) return '';
+  try { return new Date(ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}); }
+  catch { return String(ts).slice(11, 19); }
+}
+
+
+/* ── Scan ───────────────────────────────────────────────────────────────── */
+async function runScan() {
+  const code = document.getElementById('codeInput').value.trim();
+  if (!code) return;
+
+  const lang    = document.getElementById('langSelect').value;
+  const btn     = document.getElementById('scanBtn');
+  const spinner = document.getElementById('scanSpinner');
+  const label   = document.getElementById('scanBtnLabel');
+
+  btn.disabled = true;
+  spinner.style.display = 'block';
+  label.textContent = 'Scanning…';
+  document.getElementById('scanTime').textContent = '';
+  document.getElementById('tab-btn-fixed').style.display = 'none';
+  document.getElementById('scanSummary').className = 'scan-summary';
+
+  const t0 = Date.now();
+
+  try {
+    const res  = await fetch('/api/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, language: lang }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) { showError(data.error || 'Scan failed'); return; }
+
+    const ms = Date.now() - t0;
+    document.getElementById('scanTime').textContent = `${(ms/1000).toFixed(2)}s`;
+
+    _addScanToSession(data, ms);
+    renderSummary(data, ms);
+    renderCards(data.profiles || [], data.remediations || []);
+    renderAnnotations(data.annotations || [], data.packages_found || []);
+
+    if (data.was_modified && data.patched_code) {
+      renderFixedCode(data.patched_code, code, data.remediations || []);
+    } else {
+      document.getElementById('tab-btn-fixed').style.display = 'none';
+    }
+
+    setTimeout(() => loadAudit(true), 400);
+
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    label.textContent = '▶ Scan Code';
+  }
+}
+
+function showError(msg) {
+  document.getElementById('cardsBody').innerHTML = `<div class="error-banner">⚠ ${escHtml(msg)}</div>`;
+  switchTab('analysis');
+}
+
+
+/* ── Summary bar ────────────────────────────────────────────────────────── */
+function renderSummary(data, ms) {
+  const profiles  = data.profiles || [];
+  const high      = profiles.filter(p => p.is_high_risk).length;
+  const safe      = profiles.length - high;
+  const rems      = (data.remediations || []).length;
+
+  let html = '';
+  if (high > 0)  html += `<span class="summary-chip chip-danger">⛔ ${high} high-risk</span>`;
+  if (safe > 0)  html += `<span class="summary-chip chip-ok">✓ ${safe} safe</span>`;
+  if (rems > 0)  html += `<span class="summary-chip chip-info">🔧 ${rems} remediated</span>`;
+  html += `<span class="summary-chip chip-ms">⏱ ${(ms/1000).toFixed(2)}s</span>`;
+
+  document.getElementById('scanSummary').innerHTML = html;
+  document.getElementById('scanSummary').classList.add('visible');
+}
+
+
+/* ── Risk cards ─────────────────────────────────────────────────────────── */
+function renderCards(profiles, remediations) {
+  const body = document.getElementById('cardsBody');
+
+  if (!profiles.length) {
+    body.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">📦</div>
+      <div class="empty-title">No packages detected</div>
+      <div class="empty-sub">No third-party imports found in this code</div>
+    </div>`;
+    document.getElementById('badge-analysis').textContent = '0';
+    return;
+  }
+
+  const remMap = {};
+  remediations.forEach(r => { remMap[r.original_package] = r; });
+
+  const sorted = [...profiles].sort((a, b) => b.risk_score - a.risk_score);
+  document.getElementById('badge-analysis').textContent = profiles.length;
+
+  body.innerHTML = sorted.map((p, i) => {
+    const cls = cardClass(p.risk_score, p.is_high_risk);
+    const rem = remMap[p.package_name];
+    const delay = i * 0.05;
+
+    const nearestRow = p.nearest_package && p.levenshtein_distance < 10
+      ? `<div class="nearest-row">
+          <span>Nearest real package:</span>
+          <code>${escHtml(p.nearest_package)}</code>
+          <span class="dist-badge">edit dist: ${p.levenshtein_distance}</span>
+        </div>`
+      : '';
+
+    const fixBox = rem && rem.suggested_package
+      ? `<div class="fix-box">
+          <span class="fix-icon">🔧</span>
+          <div class="fix-text">
+            <div class="fix-title">Suggested replacement</div>
+            <div class="fix-pkg">${escHtml(rem.suggested_package)}</div>
+            <div class="fix-meta">via ${escHtml(rem.source)}${rem.alternatives && rem.alternatives.length > 1 ? ' · also: ' + rem.alternatives.slice(1,3).map(escHtml).join(', ') : ''}</div>
+          </div>
+          <div class="fix-confidence">${Math.round((rem.confidence||0)*100)}%</div>
+        </div>`
+      : '';
+
+    return `<div class="risk-card ${cls}" style="animation-delay:${delay}s">
+      <div class="card-header">
+        ${buildRing(p.risk_score)}
+        <div class="card-info">
+          <div class="card-pkg" title="${escHtml(p.package_name)}">${escHtml(p.package_name)}</div>
+          ${statusHtml(p.risk_score, p.is_high_risk)}
+        </div>
+      </div>
+      <div class="card-body">
+        ${flagsHtml(p.flags)}
+        ${riskBarsHtml(p.flags, p.risk_score)}
+        ${nearestRow}
+        ${fixBox}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+
+/* ── Annotations ────────────────────────────────────────────────────────── */
+function renderAnnotations(annotations, pkgsFound) {
+  const list = document.getElementById('annList');
+  const highPkgs = new Set(annotations.map(a => a.package));
+
+  let html = '';
+
+  annotations.forEach(a => {
+    const isErr = a.severity === 'error';
+    const icon  = isErr ? '🔴' : '🟡';
+    const cls   = isErr ? 'error' : 'warning';
+    const sug   = a.suggested
+      ? `<div class="ann-suggest">→ use <strong>${escHtml(a.suggested)}</strong> (${escHtml(a.source || '')})</div>` : '';
+    html += `<div class="ann-item ${cls}">
+      <span class="ann-icon">${icon}</span>
+      <div>
+        <div class="ann-msg">${escHtml(a.message)}</div>
+        <div class="ann-meta">line ${a.line} · score ${a.risk_score}/100 · ${(a.flags||[]).join(', ')}</div>
+        ${sug}
+      </div>
+    </div>`;
+  });
+
+  pkgsFound.filter(p => !highPkgs.has(p)).forEach(pkg => {
+    html += `<div class="ann-item pass">
+      <span class="ann-icon">🟢</span>
+      <div>
+        <div class="ann-msg" style="font-family:var(--mono);font-weight:600">${escHtml(pkg)}</div>
+        <div class="ann-meta">verified safe · passed all checks</div>
+      </div>
+    </div>`;
+  });
+
+  list.innerHTML = html || `<div class="empty-state">
+    <div class="empty-icon">✅</div>
+    <div class="empty-title">All clear</div>
+    <div class="empty-sub">No issues found in this code</div>
+  </div>`;
+
+  const count = annotations.length;
+  document.getElementById('badge-annotations').textContent = count || '✓';
+  document.getElementById('badge-annotations').style.background = count > 0
+    ? 'var(--red)' : 'var(--emerald)';
+  document.getElementById('badge-annotations').style.color = '#fff';
+}
+
+
+/* ── Fixed Code tab ─────────────────────────────────────────────────────── */
+function renderFixedCode(patched, original, remediations) {
+  // Show & activate the Fixed Code tab
+  const tabBtn = document.getElementById('tab-btn-fixed');
+  tabBtn.style.display = '';
+  switchTab('fixed');
+
+  // Populate both panes
+  document.getElementById('origCode').textContent    = original;
+  document.getElementById('patchedCode').textContent = patched;
+
+  // Subtitle with count
+  const n = remediations.length;
+  document.getElementById('fixedSubtitle').textContent =
+    `${n} package${n !== 1 ? 's' : ''} replaced with safe alternatives`;
+
+  // Diff chips — one chip per remediation showing old → new
+  const chips = remediations.map(r =>
+    `<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;
+       border-radius:99px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);
+       font-size:11px;font-family:var(--mono);">
+       <span style="color:var(--red);text-decoration:line-through">${escHtml(r.original_package)}</span>
+       <span style="color:var(--text-3)">→</span>
+       <span style="color:var(--emerald);font-weight:600">${escHtml(r.suggested_package)}</span>
+       <span style="color:var(--text-3);font-size:10px">(${escHtml(r.source)})</span>
+     </span>`
+  ).join('');
+  document.getElementById('diffChips').innerHTML = chips;
+}
+
+function copyPatched() {
+  navigator.clipboard.writeText(document.getElementById('patchedCode').textContent).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1800);
+  });
+}
+
+function applyToEditor() {
+  const fixed = document.getElementById('patchedCode').textContent;
+  if (!fixed) return;
+  document.getElementById('codeInput').value = fixed;
+  syncLineNums();
+  switchTab('analysis');
+  // Flash the editor to confirm
+  const ta = document.getElementById('codeInput');
+  ta.style.transition = 'background 0.3s';
+  ta.style.background = 'rgba(16,185,129,0.08)';
+  setTimeout(() => { ta.style.background = ''; }, 600);
+}
+
+
+/* ── Audit trail ────────────────────────────────────────────────────────── */
+let _lastAuditCount = 0;
+
+async function loadAudit(highlightNew = false) {
+  try {
+    const r = await fetch('/api/audit');
+    const entries = await r.json();
+    const isNew = entries.length !== _lastAuditCount;
+    _lastAuditCount = entries.length;
+    renderAudit(entries, highlightNew && isNew);
+    // Flash the audit tab badge when new entries arrive
+    if (isNew && entries.length > 0) {
+      const badge = document.getElementById('badge-audit');
+      badge.style.background = 'var(--cyan)';
+      badge.style.color = '#fff';
+      setTimeout(() => { badge.style.background = ''; badge.style.color = ''; }, 1500);
+    }
+  } catch {}
+}
+
+function renderAudit(entries, highlightNew = false) {
+  const body = document.getElementById('auditBody');
+  document.getElementById('badge-audit').textContent = entries.length;
+
+  if (!entries.length) {
+    body.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">🔐</div>
+      <div class="empty-title">No audit entries</div>
+      <div class="empty-sub">Scanned packages appear here with a SHA-256 chain</div>
+    </div>`;
+    return;
+  }
+
+  const shown = [...entries].reverse().slice(0, 50);
+
+  body.innerHTML = shown.map((e, i) => {
+    const action = (e.action || 'PASSED').toUpperCase();
+    const isRem  = action.includes('REMEDIAT');
+    const isBlk  = action === 'BLOCKED';
+    const dotCls  = isRem ? 'remediated' : isBlk ? 'blocked' : 'passed';
+    const pillCls = isRem ? 'pill-remediated' : isBlk ? 'pill-blocked' : 'pill-passed';
+    const pillTxt = isRem ? '✓ Remediated' : isBlk ? '✕ Blocked' : '✓ Passed';
+    const delay   = Math.min(i * 0.03, 0.3);
+
+    const rep = e.replacement
+      ? `<span style="font-size:11px;color:var(--emerald);font-family:var(--mono);margin-left:4px">→ ${escHtml(e.replacement)}</span>` : '';
+
+    return `<div class="timeline-item" style="animation-delay:${delay}s">
+      <div class="tl-connector">
+        <div class="tl-dot ${dotCls}"></div>
+        <div class="tl-line"></div>
+      </div>
+      <div class="tl-content">
+        <div class="tl-head">
+          <span class="action-pill ${pillCls}">${pillTxt}</span>
+          <span class="tl-pkg">${escHtml(e.package || '?')}</span>
+          ${rep}
+          <span class="tl-time">${fmtTime(e.timestamp)}</span>
+        </div>
+        <div class="hash-row">
+          ${e.prev_hash
+            ? `<span class="hash-chip" title="prev: ${escHtml(e.prev_hash)}">${truncHash(e.prev_hash)}</span>`
+            : `<span style="opacity:.35;font-size:10px">genesis</span>`}
+          <span class="hash-arrow">→</span>
+          <span class="hash-chip" title="${escHtml(e.current_hash)}">${truncHash(e.current_hash)}</span>
+          ${e.risk_score !== undefined
+            ? `<span class="hash-score">score: ${Math.round(e.risk_score)}/100</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+
+/* ── Keyboard shortcut ──────────────────────────────────────────────────── */
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runScan();
+});
+
+
+/* ── Boot ───────────────────────────────────────────────────────────────── */
+fetchStats();
+loadAudit();
+setInterval(() => loadAudit(true), 5000);
+</script>
+</body>
+</html>

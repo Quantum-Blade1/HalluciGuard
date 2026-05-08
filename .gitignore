@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Environment
+.env
+
+# Data (generated)
+data/bloom/*.json
+data/chroma_store/
+data/cve_cache/
+data/audit_log.jsonl
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (vscode-extension)
+vscode-extension/node_modules/
+vscode-extension/out/
+vscode-extension/*.vsix
