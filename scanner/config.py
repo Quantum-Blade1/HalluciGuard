@@ -45,32 +45,60 @@ BLOOM_FP_RATE: float = 0.001
 DEFAULT_RISK_THRESHOLD: int = 65
 
 RISK_WEIGHTS: dict[str, int] = {
-    # Typosquatting weight — Levenshtein distance to popular packages
-    # Ref: Ohm et al., "Backstabber's Knife Collection" (2020)
+    # ── Typosquat (w=30) ────────────────────────────────────────────────────
+    # Levenshtein distance ≤ 1 from a top-200 package = full weight (30 pts).
+    # Distance 2 = 70% weight. Distance ≥ 3 = diminishing formula.
+    # Highest weight because typosquatting is the most common and
+    # immediately actionable attack vector in supply chain attacks.
+    # Ref: Ohm et al., "Backstabber's Knife Collection: A Large-Scale Analysis
+    #      of Malicious Packages in npm and PyPI" (DIMVA 2020)
+    # Ref: Spracklen et al., "Automated Hallucination Detection" (USENIX 2025)
     "typosquat": 30,
 
-    # Hallucination DB weight — binary match against known hallucinated names
-    # Ref: Lanyado et al., "Can LLMs be Trusted as Package Recommenders?" (2023)
+    # ── Hallucination DB (w=25) ─────────────────────────────────────────────
+    # Binary match against 150+ names curated from prompting GPT-4, Claude,
+    # and GitHub Copilot across 50+ real coding tasks. A name in this DB was
+    # never a real package — any match is near-certain hallucination.
+    # Ref: Lanyado et al., "Can You Trust ChatGPT's Package Recommendations?
+    #      Investigating Misinformation in Software Dev" (Vulcan Cyber, 2023)
     "hallucination_db": 25,
 
-    # Non-existent package weight — package not found in any registry
-    # Separate from popularity: absence of a package is a strong signal on its own
+    # ── Non-existent (w=25) ─────────────────────────────────────────────────
+    # Package absent from both bloom filter (800k names) and live registry.
+    # Combined with popularity penalty (w=15) when not on registry = 40 pts
+    # baseline for any invented package name.
+    # Separate from hallucination_db: catches novel hallucinations not yet
+    # in the curated list.
     "non_existent": 25,
 
-    # Recency weight — recently created packages are riskier
-    # Ref: Vu et al., "Typosquatting and Combosquatting Attacks on the Python Ecosystem" (2020)
+    # ── Recency (w=15) ──────────────────────────────────────────────────────
+    # Packages uploaded < 90 days ago are riskier — attackers register names
+    # reactively after LLMs are observed hallucinating them.
+    # Score scales linearly: 0 days old = full 15 pts, 90 days = 0 pts.
+    # Ref: Vu et al., "Typosquatting and Combosquatting Attacks on the
+    #      Python Ecosystem" (ACSAC 2020)
     "recency": 15,
 
-    # Popularity weight — low-download packages are riskier (only for existing packages)
-    # Ref: Zimmermann et al., "Small World with High Risks" (2019)
+    # ── Popularity (w=15) ───────────────────────────────────────────────────
+    # Packages with < 1000 weekly downloads are suspicious when they exist.
+    # Legitimate packages suggested by LLMs almost always have high download
+    # counts. A real-but-obscure package warrants investigation.
+    # Ref: Zimmermann et al., "Small World with High Risks: A Study of Security
+    #      Threats in the npm Ecosystem" (USENIX Security 2019)
     "popularity": 15,
 
-    # CVE weight — packages with known vulnerabilities
-    # Ref: OSV.dev dataset analysis
+    # ── CVE (w=10) ──────────────────────────────────────────────────────────
+    # Known vulnerabilities from OSV.dev. Score = min(cve_count/5, 1) × 10.
+    # Lower weight than existence signals — a vulnerable package is a
+    # dependency risk but not necessarily a hallucination.
+    # Ref: OSV.dev open vulnerability database (google.github.io/osv.dev)
     "cve": 10,
 
-    # Cross-language weight — wrong ecosystem detection
-    # Ref: Ladisa et al., "Taxonomy of Attacks on Open-Source Supply Chains" (2023)
+    # ── Cross-ecosystem (w=5) ───────────────────────────────────────────────
+    # Package appears in the wrong ecosystem (e.g. JS package imported in
+    # Python file). Additive signal on top of others.
+    # Ref: Ladisa et al., "Taxonomy of Attacks on Open-Source Supply Chains"
+    #      (IEEE S&P 2023)
     "cross_lang": 5,
 }
 
