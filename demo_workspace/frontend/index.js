@@ -6,7 +6,7 @@
 const express = require('express');          // ✅ real
 const axios = require('axios');              // ✅ real
 const _ = require('lodash');                 // ✅ real
-const secureFetch = require('secure-fetch-utils');  // ❌ hallucinated — not on npm
+const secureFetch = require('axios');  // ❌ hallucinated — not on npm
 
 const app = express();
 app.use(express.json());

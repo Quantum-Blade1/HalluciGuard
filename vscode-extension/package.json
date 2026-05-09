@@ -1,13 +1,17 @@
 {
   "name": "halluciguard",
-  "displayName": "HalluciGuard — AI Code Supply Chain Defense",
+  "displayName": "HalluciGuard - AI Code Supply Chain Defense",
   "description": "Detects hallucinated package references in AI-generated code before they compromise your supply chain. Powered by research from Spracklen et al. (USENIX 2025).",
   "version": "0.1.0",
-  "publisher": "quantum-blade1",
+  "publisher": "Quantum-Blade1",
   "license": "MIT",
+  "homepage": "https://github.com/Quantum-Blade1/HalluciGuard#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Quantum-Blade1/HalluciGuard"
+    "url": "https://github.com/Quantum-Blade1/HalluciGuard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Quantum-Blade1/HalluciGuard/issues"
   },
   "icon": "images/icon.png",
   "galleryBanner": {
@@ -23,7 +27,7 @@
     "ai",
     "hallucination",
     "package",
-    "supply chain",
+    "supply-chain",
     "llm",
     "copilot",
     "import",
